@@ -1,0 +1,13 @@
+{
+  "name": "eventhub",
+  "private": true,
+  "scripts": {
+    "dev": "powershell -NoProfile -Command \"Set-Location frontend; npm run dev\"",
+    "dev:api": "powershell -NoProfile -Command \"Set-Location backend; npm run start:dev\"",
+    "dev:all": "npx concurrently -k -n web,api -c cyan,magenta \"powershell -NoProfile -Command Set-Location frontend; npm run dev\" \"powershell -NoProfile -Command Set-Location backend; npm run start:dev\"",
+    "db:migrate": "npm run prisma:migrate --prefix backend",
+    "db:deploy": "npm run prisma:deploy --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "postinstall": "npm install --prefix frontend && npm install --prefix backend"
+  }
+}

@@ -1,0 +1,411 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum PapelUsuario {
+  ADMINISTRADOR
+  FINANCEIRO
+  OPERADOR
+  MARKETING
+  CHECKIN
+  LEITOR
+}
+
+enum StatusEvento {
+  RASCUNHO
+  PUBLICADO
+  CANCELADO
+  ENCERRADO
+}
+
+enum VisibilidadeEvento {
+  PUBLICO
+  PRIVADO
+}
+
+enum FormatoEvento {
+  ONLINE
+  PRESENCIAL
+  HIBRIDO
+}
+
+enum StatusLote {
+  ATIVO
+  INATIVO
+  ESGOTADO
+}
+
+enum StatusPedido {
+  PENDENTE
+  PAGO
+  CANCELADO
+  EXPIRADO
+  ESTORNADO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO
+}
+
+enum StatusPagamento {
+  PENDENTE
+  APROVADO
+  RECUSADO
+  ESTORNADO
+}
+
+enum StatusIngresso {
+  VALIDO
+  UTILIZADO
+  CANCELADO
+  EXPIRADO
+}
+
+enum StatusWebhook {
+  PENDENTE
+  PROCESSADO
+  FALHA
+}
+
+enum TipoNotificacao {
+  COMPRA_CONFIRMADA
+  QR_CODE
+  CANCELAMENTO
+  ALTERACAO_EVENTO
+  LEMBRETE
+}
+
+model Empresa {
+  id              String   @id @default(uuid())
+  nome            String
+  razaoSocial     String   @map("razao_social")
+  cnpj            String   @unique
+  logoUrl         String?  @map("logo_url")
+  corPrimaria     String   @default("#6366f1") @map("cor_primaria")
+  endereco        Json?
+  dadosBancarios  Json?    @map("dados_bancarios")
+  gatewayPagamento String? @map("gateway_pagamento")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  usuarios        UsuarioEmpresa[]
+  eventos         Evento[]
+  categorias      Categoria[]
+  lotes           Lote[]
+  pedidos         Pedido[]
+  pagamentos      Pagamento[]
+  ingressos       Ingresso[]
+  webhooks        Webhook[]
+  arquivos        Arquivo[]
+  notificacoes    Notificacao[]
+  auditoriaLogs   AuditoriaLog[]
+  configuracao    ConfiguracaoEmpresa?
+
+  @@map("empresas")
+}
+
+model Usuario {
+  id           String   @id @default(uuid())
+  nome         String
+  email        String   @unique
+  senhaHash    String   @map("senha_hash")
+  telefone     String?
+  avatarUrl    String?  @map("avatar_url")
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  empresas     UsuarioEmpresa[]
+  checkins     Checkin[]
+
+  @@map("usuarios")
+}
+
+model UsuarioEmpresa {
+  id        String       @id @default(uuid())
+  empresaId String       @map("empresa_id")
+  usuarioId String       @map("usuario_id")
+  papel     PapelUsuario
+  permissoes Json        @default("[]")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, usuarioId])
+  @@index([empresaId])
+  @@map("usuarios_empresas")
+}
+
+model Categoria {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  nome      String
+  slug      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  eventos   Evento[]
+
+  @@unique([empresaId, slug])
+  @@index([empresaId])
+  @@map("categorias")
+}
+
+model Evento {
+  id          String             @id @default(uuid())
+  empresaId   String             @map("empresa_id")
+  categoriaId String?            @map("categoria_id")
+  nome        String
+  slug        String
+  descricao   String?
+  bannerUrl   String?            @map("banner_url")
+  imagemUrl   String?            @map("imagem_url")
+  dataInicio  DateTime           @map("data_inicio")
+  dataFim     DateTime?          @map("data_fim")
+  cidade      String?
+  estado      String?
+  endereco    String?
+  mapaUrl     String?            @map("mapa_url")
+  capacidade  Int                @default(0)
+  status      StatusEvento       @default(RASCUNHO)
+  visibilidade VisibilidadeEvento @default(PUBLICO)
+  formato     FormatoEvento      @default(PRESENCIAL)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  empresa     Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  lotes       Lote[]
+  pedidos     Pedido[]
+  ingressos   Ingresso[]
+
+  @@unique([empresaId, slug])
+  @@index([empresaId])
+  @@map("eventos")
+}
+
+model Lote {
+  id               String     @id @default(uuid())
+  empresaId        String     @map("empresa_id")
+  eventoId         String     @map("evento_id")
+  nome             String
+  preco            Decimal    @db.Decimal(10, 2)
+  quantidade       Int
+  quantidadeVendida Int       @default(0) @map("quantidade_vendida")
+  vendaInicio      DateTime   @map("venda_inicio")
+  vendaFim         DateTime   @map("venda_fim")
+  taxa             Decimal    @default(0) @db.Decimal(10, 2)
+  limitePorCompra  Int        @default(1) @map("limite_por_compra")
+  status           StatusLote @default(ATIVO)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  empresa          Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  evento           Evento     @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  pedidoItens      PedidoItem[]
+  ingressos        Ingresso[]
+
+  @@index([empresaId])
+  @@index([eventoId])
+  @@map("lotes")
+}
+
+model Pedido {
+  id           String       @id @default(uuid())
+  empresaId    String       @map("empresa_id")
+  eventoId     String       @map("evento_id")
+  codigo       String       @unique
+  status       StatusPedido @default(PENDENTE)
+  total        Decimal      @db.Decimal(10, 2)
+  compradorNome String      @map("comprador_nome")
+  compradorEmail String     @map("comprador_email")
+  compradorCpf String?      @map("comprador_cpf")
+  compradorTelefone String? @map("comprador_telefone")
+  expiraEm     DateTime?    @map("expira_em")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  empresa      Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  evento       Evento       @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  itens        PedidoItem[]
+  pagamentos   Pagamento[]
+  ingressos    Ingresso[]
+
+  @@index([empresaId])
+  @@index([eventoId])
+  @@map("pedidos")
+}
+
+model PedidoItem {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  pedidoId  String   @map("pedido_id")
+  loteId    String   @map("lote_id")
+  quantidade Int
+  precoUnitario Decimal @map("preco_unitario") @db.Decimal(10, 2)
+  subtotal  Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  lote      Lote     @relation(fields: [loteId], references: [id], onDelete: Restrict)
+
+  @@index([empresaId])
+  @@index([pedidoId])
+  @@map("pedido_itens")
+}
+
+model Pagamento {
+  id              String          @id @default(uuid())
+  empresaId       String          @map("empresa_id")
+  pedidoId        String          @map("pedido_id")
+  metodo          MetodoPagamento
+  status          StatusPagamento @default(PENDENTE)
+  valor           Decimal         @db.Decimal(10, 2)
+  taxa            Decimal         @default(0) @db.Decimal(10, 2)
+  gateway         String
+  gatewayRef      String?         @map("gateway_ref")
+  gatewayPayload  Json?           @map("gateway_payload")
+  pagoEm          DateTime?       @map("pago_em")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  empresa         Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedido          Pedido          @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@index([pedidoId])
+  @@map("pagamentos")
+}
+
+model Ingresso {
+  id            String         @id @default(uuid())
+  empresaId     String         @map("empresa_id")
+  eventoId      String         @map("evento_id")
+  pedidoId      String         @map("pedido_id")
+  loteId        String         @map("lote_id")
+  tokenHash     String         @unique @map("token_hash")
+  qrCodeUrl     String?        @map("qr_code_url")
+  participanteNome String      @map("participante_nome")
+  participanteCpf String?     @map("participante_cpf")
+  participanteEmail String     @map("participante_email")
+  participanteTelefone String? @map("participante_telefone")
+  status        StatusIngresso @default(VALIDO)
+  utilizadoEm   DateTime?      @map("utilizado_em")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  evento        Evento         @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  pedido        Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  lote          Lote           @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  checkins      Checkin[]
+
+  @@index([empresaId])
+  @@index([eventoId])
+  @@index([pedidoId])
+  @@map("ingressos")
+}
+
+model Checkin {
+  id          String   @id @default(uuid())
+  empresaId   String   @map("empresa_id")
+  ingressoId  String   @map("ingresso_id")
+  operadorId  String   @map("operador_id")
+  local       String?
+  valido      Boolean
+  motivo      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  ingresso    Ingresso @relation(fields: [ingressoId], references: [id], onDelete: Cascade)
+  operador    Usuario  @relation(fields: [operadorId], references: [id], onDelete: Restrict)
+
+  @@index([empresaId])
+  @@index([ingressoId])
+  @@map("checkins")
+}
+
+model Webhook {
+  id          String        @id @default(uuid())
+  empresaId   String        @map("empresa_id")
+  origem      String
+  evento      String
+  payload     Json
+  status      StatusWebhook @default(PENDENTE)
+  processadoEm DateTime?    @map("processado_em")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  empresa     Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("webhooks")
+}
+
+model Arquivo {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  nome      String
+  url       String
+  mimeType  String   @map("mime_type")
+  tamanho   Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("arquivos")
+}
+
+model Notificacao {
+  id        String          @id @default(uuid())
+  empresaId String          @map("empresa_id")
+  tipo      TipoNotificacao
+  destino   String
+  assunto   String
+  conteudo  String
+  enviada   Boolean         @default(false)
+  enviadaEm DateTime?       @map("enviada_em")
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  empresa   Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("notificacoes")
+}
+
+model AuditoriaLog {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  usuarioId String?  @map("usuario_id")
+  acao      String
+  entidade  String
+  entidadeId String? @map("entidade_id")
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("auditoria_logs")
+}
+
+model ConfiguracaoEmpresa {
+  id        String   @id @default(uuid())
+  empresaId String   @unique @map("empresa_id")
+  config    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("configuracoes_empresa")
+}

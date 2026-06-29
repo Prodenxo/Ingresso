@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+.env.*.local
+generated/
+coverage/
+*.log
+.DS_Store
+*.db
+*.db-journal
