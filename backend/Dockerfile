@@ -1,7 +1,7 @@
 FROM node:20-bookworm-slim AS builder
 
 RUN apt-get update -y \
-  && apt-get install -y openssl ca-certificates python3 make g++ \
+  && apt-get install -y openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -9,8 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
-
+RUN npm install --ignore-scripts
 RUN npx prisma generate
 
 COPY . .
