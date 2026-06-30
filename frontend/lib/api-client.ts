@@ -110,6 +110,45 @@ export async function apiFetch<T>(
   return (await response.json()) as T
 }
 
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData | null,
+  method: 'POST' | 'DELETE' = 'POST',
+  retry = true,
+): Promise<T> {
+  const headers = new Headers()
+  const accessToken = getAccessToken()
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method,
+    headers,
+    body: formData ?? undefined,
+  }).catch(() => {
+    throw new ApiError(
+      'Servidor indisponível. Inicie o backend com npm run dev:api',
+      0,
+    )
+  })
+
+  if (response.status === 401 && retry) {
+    const session = await refreshSession()
+
+    if (session) {
+      return apiUpload<T>(path, formData, method, false)
+    }
+  }
+
+  if (!response.ok) {
+    throw new ApiError(await parseError(response), response.status)
+  }
+
+  return (await response.json()) as T
+}
+
 export async function loginRequest(
   email: string,
   senha: string,

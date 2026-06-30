@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { ParticipantShell } from '@/components/layout/participant-shell'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
-import { formatEventDate, statusLabel } from '@/lib/ingressos-utils'
+import { formatEventDate, getLoteNomeVitrine, statusLabel } from '@/lib/ingressos-utils'
 import { formatCurrency } from '@/lib/utils'
 import type { MeuIngresso } from '@/types/ingressos'
 
@@ -69,7 +69,10 @@ export default function MeusIngressosPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {ingressos.map((ingresso) => (
+          {ingressos.map((ingresso) => {
+            const nomeLote = getLoteNomeVitrine(ingresso.lote.nome, 0, 1)
+
+            return (
             <Card
               key={ingresso.id}
               className="glass-panel rounded-2xl border-white/10 p-0"
@@ -88,10 +91,12 @@ export default function MeusIngressosPage() {
                   {statusLabel(ingresso.status)}
                 </Chip>
               </Card.Header>
-              <Card.Content className="space-y-2 px-5 pb-5 text-sm text-zinc-300">
-                <p>
-                  <span className="text-zinc-500">Lote:</span> {ingresso.lote.nome}
-                </p>
+              <Card.Content className="space-y-3 px-5 pb-5 text-sm text-zinc-300">
+                {nomeLote ? (
+                  <p>
+                    <span className="text-zinc-500">Lote:</span> {nomeLote}
+                  </p>
+                ) : null}
                 <p>
                   <span className="text-zinc-500">Valor:</span>{' '}
                   {formatCurrency(Number(ingresso.lote.preco))}
@@ -100,9 +105,23 @@ export default function MeusIngressosPage() {
                   <span className="text-zinc-500">Participante:</span>{' '}
                   {ingresso.participanteNome}
                 </p>
+                {ingresso.qrCodeUrl ? (
+                  <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-indigo-300/80">
+                      Código do ingresso
+                    </p>
+                    <p className="mt-1 font-mono text-base text-indigo-100">
+                      {ingresso.qrCodeUrl}
+                    </p>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Apresente este código na entrada do evento.
+                    </p>
+                  </div>
+                ) : null}
               </Card.Content>
             </Card>
-          ))}
+            )
+          })}
         </div>
       )}
     </ParticipantShell>

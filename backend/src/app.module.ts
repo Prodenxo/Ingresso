@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { AuthModule } from './auth/auth.module'
+import { DashboardModule } from './dashboard/dashboard.module'
 import { EmpresasModule } from './empresas/empresas.module'
 import { EventosModule } from './eventos/eventos.module'
 import { HealthModule } from './health/health.module'
 import { IngressosModule } from './ingressos/ingressos.module'
+import { PedidosModule } from './pedidos/pedidos.module'
 import { PrismaModule } from './prisma/prisma.module'
 
 @Module({
@@ -13,9 +15,11 @@ import { PrismaModule } from './prisma/prisma.module'
     PrismaModule,
     HealthModule,
     AuthModule,
+    DashboardModule,
     EmpresasModule,
     EventosModule,
     IngressosModule,
+    PedidosModule,
   ],
 })
 export class AppModule {}

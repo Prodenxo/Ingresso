@@ -206,6 +206,7 @@ model Lote {
   eventoId         String     @map("evento_id")
   nome             String
   preco            Decimal    @db.Decimal(10, 2)
+  precoDe          Decimal?   @map("preco_de") @db.Decimal(10, 2)
   quantidade       Int
   quantidadeVendida Int       @default(0) @map("quantidade_vendida")
   vendaInicio      DateTime   @map("venda_inicio")

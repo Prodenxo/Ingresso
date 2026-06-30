@@ -2,6 +2,7 @@ export interface LoteDisponivel {
   id: string
   nome: string
   preco: number
+  precoDe: number | null
   disponiveis: number
   vendaFim: string
   limitePorCompra: number
