@@ -27,10 +27,18 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean)
 
+  const frontendUrl = process.env.FRONTEND_URL?.trim()
+
+  if (frontendUrl && !corsOrigins.includes(frontendUrl)) {
+    corsOrigins.push(frontendUrl)
+  }
+
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
   })
+
+  console.log(`CORS habilitado para: ${corsOrigins.join(', ')}`)
 
   const port = Number(process.env.PORT ?? 3001)
   await app.listen(port, '0.0.0.0')
