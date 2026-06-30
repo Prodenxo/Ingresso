@@ -20,6 +20,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+ENV API_URL=https://auto-eventhub-backend.4tnf3f.easypanel.host/api
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./

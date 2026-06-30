@@ -1,4 +1,4 @@
-import { API_URL } from '@/lib/api-client'
+import { getApiUrl } from '@/lib/public-env'
 
 export function resolveMediaUrl(path: string | null | undefined): string | null {
   if (!path) {
@@ -13,6 +13,6 @@ export function resolveMediaUrl(path: string | null | undefined): string | null 
     return path
   }
 
-  const apiOrigin = API_URL.replace(/\/api\/?$/, '')
+  const apiOrigin = getApiUrl().replace(/\/api\/?$/, '')
   return `${apiOrigin}${path.startsWith('/') ? path : `/${path}`}`
 }

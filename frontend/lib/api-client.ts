@@ -4,10 +4,8 @@ import {
   getRefreshToken,
   setTokens,
 } from '@/lib/auth-storage'
+import { getApiUrl, getNetworkErrorMessage } from '@/lib/public-env'
 import type { AuthSession, AuthUser } from '@/types/auth'
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001/api'
 
 interface ApiErrorBody {
   message?: string | string[]
@@ -49,7 +47,7 @@ async function refreshSession(): Promise<AuthSession | null> {
     return null
   }
 
-  const response = await fetch(`${API_URL}/auth/refresh`, {
+  const response = await fetch(`${getApiUrl()}/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -81,14 +79,11 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${getApiUrl()}${path}`, {
     ...options,
     headers,
   }).catch(() => {
-    throw new ApiError(
-      'Servidor indisponível. Inicie o backend com npm run dev:api',
-      0,
-    )
+    throw new ApiError(getNetworkErrorMessage(), 0)
   })
 
   if (response.status === 401 && retry) {
@@ -123,15 +118,12 @@ export async function apiUpload<T>(
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${getApiUrl()}${path}`, {
     method,
     headers,
     body: formData ?? undefined,
   }).catch(() => {
-    throw new ApiError(
-      'Servidor indisponível. Inicie o backend com npm run dev:api',
-      0,
-    )
+    throw new ApiError(getNetworkErrorMessage(), 0)
   })
 
   if (response.status === 401 && retry) {
@@ -190,4 +182,4 @@ export function logoutRequest(): void {
   clearTokens()
 }
 
-export { API_URL }
+export { getApiUrl } from '@/lib/public-env'
