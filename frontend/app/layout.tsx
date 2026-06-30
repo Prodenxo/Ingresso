@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { getClientApiUrl } from '@/lib/api-proxy-config'
 import { Providers } from './providers'
 import './globals.css'
 
@@ -19,11 +20,7 @@ export const metadata: Metadata = {
 }
 
 function resolveRuntimeApiUrl(): string {
-  const fromRuntime = process.env.API_URL?.trim()
-  const fromPublic = process.env.NEXT_PUBLIC_API_URL?.trim()
-  const value = fromRuntime || fromPublic || 'http://127.0.0.1:3001/api'
-
-  return value.replace(/\/$/, '')
+  return getClientApiUrl()
 }
 
 export default function RootLayout({
