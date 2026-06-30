@@ -1,4 +1,7 @@
+'use client'
+
 import { CalendarDays, ImageIcon } from 'lucide-react'
+import { useState } from 'react'
 import { resolveMediaUrl } from '@/lib/media-url'
 import { cn } from '@/lib/utils'
 
@@ -10,33 +13,15 @@ interface EventoPosterProps {
   className?: string
 }
 
-export function EventoPoster({
-  imagemUrl,
-  bannerUrl,
-  nome,
-  size = 'md',
+function PosterPlaceholder({
+  size,
   className,
-}: EventoPosterProps) {
-  const src = resolveMediaUrl(imagemUrl ?? bannerUrl)
+}: {
+  size: 'sm' | 'md'
+  className?: string
+}) {
   const sizeClass =
-    size === 'sm'
-      ? 'h-[88px] w-[66px]'
-      : 'h-[120px] w-[90px]'
-
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={`Capa ${nome}`}
-        className={cn(
-          'shrink-0 rounded-lg border border-white/10 object-cover shadow-sm',
-          sizeClass,
-          className,
-        )}
-      />
-    )
-  }
+    size === 'sm' ? 'h-[88px] w-[66px]' : 'h-[120px] w-[90px]'
 
   return (
     <div
@@ -50,5 +35,36 @@ export function EventoPoster({
       <CalendarDays className="size-5" />
       <ImageIcon className="mt-1 size-3 opacity-60" />
     </div>
+  )
+}
+
+export function EventoPoster({
+  imagemUrl,
+  bannerUrl,
+  nome,
+  size = 'md',
+  className,
+}: EventoPosterProps) {
+  const [hasError, setHasError] = useState(false)
+  const src = resolveMediaUrl(imagemUrl ?? bannerUrl)
+  const sizeClass =
+    size === 'sm' ? 'h-[88px] w-[66px]' : 'h-[120px] w-[90px]'
+
+  if (!src || hasError) {
+    return <PosterPlaceholder size={size} className={className} />
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={`Capa ${nome}`}
+      className={cn(
+        'shrink-0 rounded-lg border border-white/10 object-cover shadow-sm',
+        sizeClass,
+        className,
+      )}
+      onError={() => setHasError(true)}
+    />
   )
 }

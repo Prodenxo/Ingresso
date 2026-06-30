@@ -8,7 +8,9 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
 
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+  const uploadsRoot = join(process.cwd(), 'uploads')
+
+  app.useStaticAssets(uploadsRoot, {
     prefix: '/api/uploads/',
   })
 
@@ -41,6 +43,7 @@ async function bootstrap() {
   console.log(`CORS habilitado para: ${corsOrigins.join(', ')}`)
 
   const port = Number(process.env.PORT ?? 3001)
+  console.log(`Uploads em: ${uploadsRoot}`)
   await app.listen(port, '0.0.0.0')
 }
 
