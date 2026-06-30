@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import type { AuthenticatedUser } from '../auth/types/jwt-payload.type'
@@ -17,6 +17,15 @@ export class PedidosController {
     @Body() dto: CheckoutDto,
   ) {
     return this.pedidosService.checkoutLote(loteId, user.id, dto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/status')
+  obterStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.pedidosService.obterStatusPedido(id, user.id)
   }
 
   @UseGuards(JwtAuthGuard)

@@ -9,6 +9,7 @@ import { HealthModule } from './health/health.module'
 import { IngressosModule } from './ingressos/ingressos.module'
 import { PedidosModule } from './pedidos/pedidos.module'
 import { PrismaModule } from './prisma/prisma.module'
+import { WebhooksModule } from './webhooks/webhooks.module'
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PrismaModule } from './prisma/prisma.module'
     EventosModule,
     IngressosModule,
     PedidosModule,
+    WebhooksModule,
   ],
 })
 export class AppModule {}

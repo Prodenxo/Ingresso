@@ -7,6 +7,7 @@ export interface PaymentConnectionResult {
 
 export interface PixChargeParams {
   creds: GatewayPagamentoCredenciais
+  pedidoId: string
   valor: number
   pedidoCodigo: string
   descricao: string

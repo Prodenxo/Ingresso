@@ -227,6 +227,37 @@
       ]
     },
     {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "GET — Status do pedido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/pedidos/{{pedidoId}}/status"
+          }
+        },
+        {
+          "name": "POST — Webhook Inter Pix (simular)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pix\": [\n    {\n      \"txid\": \"COLE_O_TXID_DO_PAGAMENTO\",\n      \"valor\": \"29.90\",\n      \"endToEndId\": \"E12345678202606301234567890123456\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/webhooks/inter-pix/{{empresaId}}"
+          }
+        }
+      ]
+    },
+    {
       "name": "Health",
       "item": [
         {

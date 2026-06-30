@@ -46,6 +46,15 @@ export interface CheckoutResponse {
   codigo: string
   total: number
   status: string
+  gateway: 'mock-pix' | 'inter-pix'
   pixCopiaCola: string
-  expiraEm: string
+  expiraEm: string | null
+}
+
+export interface PedidoStatusResponse {
+  pedidoId: string
+  status: string
+  gateway: 'mock-pix' | 'inter-pix'
+  expiraEm: string | null
+  ingressos: Array<{ id: string; codigo: string }>
 }
