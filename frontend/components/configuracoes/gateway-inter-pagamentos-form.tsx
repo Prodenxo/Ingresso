@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Card, Chip, Label } from '@heroui/react'
-import { AlertCircle, CheckCircle2, CreditCard, Trash2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, CreditCard, PlugZap, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { PemFileField } from '@/components/configuracoes/pem-file-field'
 import { FormField } from '@/components/ui/form-field'
@@ -64,13 +64,15 @@ export function GatewayInterPagamentosForm() {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [certificadoFileName, setCertificadoFileName] = useState<string | null>(null)
   const [chavePrivadaFileName, setChavePrivadaFileName] = useState<string | null>(null)
 
-  const loadResumo = useCallback(async () => {    setIsLoading(true)
+  const loadResumo = useCallback(async () => {
+    setIsLoading(true)
     setError(null)
 
     try {
@@ -184,6 +186,36 @@ export function GatewayInterPagamentosForm() {
       setError(err instanceof ApiError ? err.message : 'Erro ao salvar configuração')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleTestarConexao() {
+    setError(null)
+    setSuccess(null)
+    setIsTesting(true)
+
+    try {
+      const data = await apiFetch<GatewayPagamentoResumo>(
+        '/configuracoes/pagamentos/testar',
+        { method: 'POST' },
+      )
+      setResumo(data)
+
+      if (data.status === 'conectado') {
+        setSuccess('Conexão com o Banco Inter validada com sucesso.')
+      } else if (data.ultimoErro) {
+        setError(data.ultimoErro)
+      } else {
+        setError('Não foi possível validar a conexão com o Banco Inter')
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao testar conexão com o Banco Inter',
+      )
+    } finally {
+      setIsTesting(false)
     }
   }
 
@@ -414,15 +446,27 @@ export function GatewayInterPagamentosForm() {
         />
 
         <div className="flex flex-wrap gap-3 pt-2">
-          <Button type="submit" variant="primary" isDisabled={isSaving}>
+          <Button type="submit" variant="primary" isDisabled={isSaving || isTesting}>
             {isSaving ? 'Salvando...' : 'Salvar configuração'}
           </Button>
 
           {resumo?.configurado ? (
             <Button
               type="button"
+              variant="secondary"
+              isDisabled={isTesting || isSaving}
+              onPress={() => void handleTestarConexao()}
+            >
+              <PlugZap className="size-4" aria-hidden />
+              {isTesting ? 'Testando...' : 'Testar conexão'}
+            </Button>
+          ) : null}
+
+          {resumo?.configurado ? (
+            <Button
+              type="button"
               variant="ghost"
-              isDisabled={isRemoving}
+              isDisabled={isRemoving || isTesting}
               onPress={() => void handleRemove()}
             >
               <Trash2 className="size-4" aria-hidden />

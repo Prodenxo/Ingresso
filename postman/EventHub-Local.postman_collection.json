@@ -215,6 +215,14 @@
             "header": [],
             "url": "{{baseUrl}}/configuracoes/pagamentos"
           }
+        },
+        {
+          "name": "POST — Testar conexão Inter",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/configuracoes/pagamentos/testar"
+          }
         }
       ]
     },

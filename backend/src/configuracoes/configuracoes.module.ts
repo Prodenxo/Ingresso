@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common'
 import { AuthModule } from '../auth/auth.module'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
+import { PaymentsModule } from '../payments/payments.module'
 import { ConfiguracoesPagamentosController } from './configuracoes-pagamentos.controller'
 import { ConfiguracoesPagamentosService } from './configuracoes-pagamentos.service'
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, PaymentsModule],
   controllers: [ConfiguracoesPagamentosController],
   providers: [ConfiguracoesPagamentosService, EmpresaAccessService],
   exports: [ConfiguracoesPagamentosService],

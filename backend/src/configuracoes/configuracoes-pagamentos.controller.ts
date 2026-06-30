@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Post,
   Put,
   UseGuards,
 } from '@nestjs/common'
@@ -30,6 +31,11 @@ export class ConfiguracoesPagamentosController {
     @Body() dto: SalvarGatewayPagamentoDto,
   ) {
     return this.pagamentosService.salvar(user.id, dto)
+  }
+
+  @Post('testar')
+  testar(@CurrentUser() user: AuthenticatedUser) {
+    return this.pagamentosService.testarConexao(user.id)
   }
 
   @Delete()

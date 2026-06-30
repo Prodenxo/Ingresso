@@ -9,6 +9,7 @@ import {
   maskSecret,
 } from '../common/crypto/field-encryption'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
+import { PaymentProviderFactory } from '../payments/payment-provider.factory'
 import { PrismaService } from '../prisma/prisma.service'
 import { SalvarGatewayPagamentoDto } from './dto/salvar-gateway-pagamento.dto'
 import type {
@@ -24,6 +25,7 @@ export class ConfiguracoesPagamentosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly empresaAccess: EmpresaAccessService,
+    private readonly paymentProviderFactory: PaymentProviderFactory,
   ) {}
 
   async obterResumo(usuarioId: string): Promise<GatewayPagamentoResumo> {
@@ -169,6 +171,42 @@ export class ConfiguracoesPagamentosService {
     ])
 
     return { message: 'Configuração de pagamento removida' }
+  }
+
+  async testarConexao(usuarioId: string): Promise<GatewayPagamentoResumo> {
+    const empresaId = await this.empresaAccess.assertPagamentoConfigAccess(
+      usuarioId,
+    )
+
+    const gateway = await this.prisma.empresaGatewayPagamento.findUnique({
+      where: { empresaId },
+    })
+
+    if (!gateway) {
+      throw new BadRequestException(
+        'Configure o gateway de pagamento antes de testar a conexão',
+      )
+    }
+
+    const creds = await this.obterCredenciaisDescriptografadas(empresaId)
+    const provider = this.paymentProviderFactory.get(creds.provider)
+    const result = await provider.testConnection(creds)
+
+    await this.prisma.empresaGatewayPagamento.update({
+      where: { empresaId },
+      data: result.ok
+        ? {
+            status: 'conectado',
+            conectadoEm: new Date(),
+            ultimoErro: null,
+          }
+        : {
+            status: 'erro',
+            ultimoErro: result.message ?? 'Falha ao testar conexão',
+          },
+    })
+
+    return this.obterResumo(usuarioId)
   }
 
   async obterCredenciaisDescriptografadas(

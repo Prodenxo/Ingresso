@@ -112,8 +112,32 @@ model Empresa {
   notificacoes    Notificacao[]
   auditoriaLogs   AuditoriaLog[]
   configuracao    ConfiguracaoEmpresa?
+  gatewayConfig   EmpresaGatewayPagamento?
 
   @@map("empresas")
+}
+
+model EmpresaGatewayPagamento {
+  id               String    @id @default(uuid())
+  empresaId        String    @unique @map("empresa_id")
+  provider         String
+  ambiente         String
+  clientIdEnc      String    @map("client_id_enc") @db.Text
+  clientSecretEnc  String    @map("client_secret_enc") @db.Text
+  certificadoEnc   String    @map("certificado_enc") @db.Text
+  chavePrivadaEnc  String    @map("chave_privada_enc") @db.Text
+  webhookSecretEnc String?   @map("webhook_secret_enc") @db.Text
+  chavePix         String?   @map("chave_pix")
+  status           String    @default("pendente")
+  ultimoErro       String?   @map("ultimo_erro") @db.Text
+  conectadoEm      DateTime? @map("conectado_em")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("empresas_gateway_pagamento")
 }
 
 model Usuario {
