@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { AuthModule } from './auth/auth.module'
+import { ConfiguracoesModule } from './configuracoes/configuracoes.module'
 import { DashboardModule } from './dashboard/dashboard.module'
 import { EmpresasModule } from './empresas/empresas.module'
 import { EventosModule } from './eventos/eventos.module'
@@ -16,6 +17,7 @@ import { PrismaModule } from './prisma/prisma.module'
     HealthModule,
     AuthModule,
     DashboardModule,
+    ConfiguracoesModule,
     EmpresasModule,
     EventosModule,
     IngressosModule,

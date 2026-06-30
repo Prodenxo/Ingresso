@@ -8,6 +8,21 @@ export function isPainelAdmin(user: AuthUser | null): boolean {
   return user.tipoConta === 'ORGANIZADOR' || user.tipoConta === 'SUPERADMIN'
 }
 
+export function canConfigurarPagamentos(user: AuthUser | null): boolean {
+  if (!user) {
+    return false
+  }
+
+  if (user.tipoConta === 'SUPERADMIN') {
+    return true
+  }
+
+  return user.empresas.some(
+    (empresa) =>
+      empresa.papel === 'ADMINISTRADOR' || empresa.papel === 'FINANCEIRO',
+  )
+}
+
 export function isParticipante(user: AuthUser | null): boolean {
   return user?.tipoConta === 'PARTICIPANTE'
 }

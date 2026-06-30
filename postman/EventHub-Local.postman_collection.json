@@ -1,0 +1,236 @@
+{
+  "info": {
+    "_postman_id": "eventhub-local-api",
+    "name": "EventHub — API Local",
+    "description": "Collection para testar a API do EventHub localmente.\n\n1. Importe também o environment `EventHub-Local.postman_environment.json`\n2. Selecione o environment **EventHub Local**\n3. Rode **Auth → Login (Organizador)** — o token é salvo automaticamente\n4. Teste **Configurações → Pagamentos**",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3001/api"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Status",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/status"
+          }
+        },
+        {
+          "name": "Login (Organizador — teste)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.environment.set('accessToken', json.accessToken);",
+                  "  console.log('Token salvo automaticamente');",
+                  "}",
+                  "pm.test('Login OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Token recebido', () => pm.expect(json.accessToken).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"gateway.teste.local@eventhub.dev\",\n  \"senha\": \"12345678\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login (sua conta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.environment.set('accessToken', json.accessToken);",
+                  "}",
+                  "pm.test('Login OK', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seu-email@empresa.com\",\n  \"senha\": \"sua-senha\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Register Empresa (teste)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const uid = Date.now().toString().slice(-8);",
+                  "pm.variables.set('cnpjTeste', `${uid}000199`);",
+                  "pm.variables.set('emailTeste', `empresa.teste.${uid}@eventhub.dev`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.environment.set('accessToken', json.accessToken);",
+                  "}",
+                  "pm.test('Registro OK', () => pm.response.to.have.status(201).or(pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"empresa\",\n  \"nome\": \"Admin Teste Postman\",\n  \"email\": \"{{emailTeste}}\",\n  \"senha\": \"12345678\",\n  \"nomeEmpresa\": \"Empresa Postman Teste\",\n  \"razaoSocial\": \"Empresa Postman Teste LTDA\",\n  \"cnpj\": \"{{cnpjTeste}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Me (usuário logado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Configurações — Pagamentos",
+      "item": [
+        {
+          "name": "GET — Resumo gateway",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/configuracoes/pagamentos"
+          }
+        },
+        {
+          "name": "PUT — Salvar Inter Pix (sandbox)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"inter-pix\",\n  \"ambiente\": \"sandbox\",\n  \"clientId\": \"seu-client-id-do-inter\",\n  \"clientSecret\": \"seu-client-secret-do-inter\",\n  \"certificadoPem\": \"-----BEGIN CERTIFICATE-----\\nCOLE_AQUI_O_CERTIFICADO\\n-----END CERTIFICATE-----\",\n  \"chavePrivadaPem\": \"-----BEGIN PRIVATE KEY-----\\nCOLE_AQUI_A_CHAVE_PRIVADA\\n-----END PRIVATE KEY-----\",\n  \"chavePix\": \"sua-chave-pix@email.com\",\n  \"webhookSecret\": \"opcional\"\n}"
+            },
+            "url": "{{baseUrl}}/configuracoes/pagamentos"
+          }
+        },
+        {
+          "name": "PUT — Atualizar (sem trocar secret)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"inter-pix\",\n  \"ambiente\": \"producao\",\n  \"clientId\": \"client-id-atualizado\",\n  \"certificadoPem\": \"-----BEGIN CERTIFICATE-----\\nCERTIFICADO_ATUALIZADO\\n-----END CERTIFICATE-----\"\n}"
+            },
+            "url": "{{baseUrl}}/configuracoes/pagamentos"
+          }
+        },
+        {
+          "name": "DELETE — Remover gateway",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/configuracoes/pagamentos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "http://127.0.0.1:3001/api/health"
+          }
+        }
+      ]
+    }
+  ]
+}

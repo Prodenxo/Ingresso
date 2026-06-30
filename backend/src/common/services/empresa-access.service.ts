@@ -50,4 +50,23 @@ export class EmpresaAccessService {
       throw new NotFoundException('Evento não encontrado')
     }
   }
+
+  async assertPagamentoConfigAccess(usuarioId: string): Promise<string> {
+    const empresaId = await this.resolveEmpresaId(usuarioId)
+    const vinculo = await this.prisma.usuarioEmpresa.findFirst({
+      where: { usuarioId, empresaId },
+      select: { papel: true },
+    })
+
+    if (
+      !vinculo ||
+      (vinculo.papel !== 'ADMINISTRADOR' && vinculo.papel !== 'FINANCEIRO')
+    ) {
+      throw new ForbiddenException(
+        'Apenas administrador ou financeiro pode configurar pagamentos',
+      )
+    }
+
+    return empresaId
+  }
 }
