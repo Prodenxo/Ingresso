@@ -5,16 +5,31 @@ import { PrismaService } from '../prisma/prisma.service'
 export class EmpresasService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    return this.prisma.empresa.findMany({
+  async findMine(usuarioId: string) {
+    const memberships = await this.prisma.usuarioEmpresa.findMany({
+      where: { usuarioId },
       select: {
-        id: true,
-        nome: true,
-        cnpj: true,
-        corPrimaria: true,
+        papel: true,
         createdAt: true,
+        empresa: {
+          select: {
+            id: true,
+            nome: true,
+            razaoSocial: true,
+            cnpj: true,
+            corPrimaria: true,
+            logoUrl: true,
+            createdAt: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     })
+
+    return memberships.map(({ empresa, papel, createdAt }) => ({
+      ...empresa,
+      papel,
+      vinculoEm: createdAt,
+    }))
   }
 }

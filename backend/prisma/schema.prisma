@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TipoConta {
+  PARTICIPANTE
+  ORGANIZADOR
+  SUPERADMIN
+}
+
 enum PapelUsuario {
   ADMINISTRADOR
   FINANCEIRO
@@ -111,15 +117,16 @@ model Empresa {
 }
 
 model Usuario {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   nome         String
-  email        String   @unique
-  senhaHash    String   @map("senha_hash")
+  email        String    @unique
+  senhaHash    String    @map("senha_hash")
   telefone     String?
-  avatarUrl    String?  @map("avatar_url")
-  ativo        Boolean  @default(true)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  avatarUrl    String?   @map("avatar_url")
+  tipoConta    TipoConta @default(PARTICIPANTE) @map("tipo_conta")
+  ativo        Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   empresas     UsuarioEmpresa[]
   checkins     Checkin[]

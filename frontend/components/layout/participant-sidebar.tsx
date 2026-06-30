@@ -2,30 +2,26 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  BarChart3,
-  CalendarDays,
-  LayoutDashboard,
-  LogOut,
-  QrCode,
-  Settings,
-  Ticket,
-  Wallet,
-} from 'lucide-react'
+import { LogOut, ShoppingCart, Ticket } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/eventos', label: 'Eventos', icon: CalendarDays },
-  { href: '/ingressos', label: 'Ingressos', icon: Ticket },
-  { href: '/check-in', label: 'Check-in', icon: QrCode },
-  { href: '/financeiro', label: 'Financeiro', icon: Wallet },
-  { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-  { href: '/configuracoes', label: 'Configurações', icon: Settings },
+  {
+    href: '/ingressos',
+    label: 'Ingressos',
+    icon: ShoppingCart,
+    exact: true,
+  },
+  {
+    href: '/ingressos/meus',
+    label: 'Meus ingressos',
+    icon: Ticket,
+    exact: false,
+  },
 ]
 
-export function AdminSidebar() {
+export function ParticipantSidebar() {
   const pathname = usePathname()
   const { logout } = useAuth()
 
@@ -36,13 +32,15 @@ export function AdminSidebar() {
           EventHub
         </p>
         <h1 className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-xl font-semibold text-transparent">
-          Painel Admin
+          Minha conta
         </h1>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1" aria-label="Navegação principal">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(`${href}/`)
+      <nav className="flex flex-1 flex-col gap-1" aria-label="Navegação da conta">
+        {navItems.map(({ href, label, icon: Icon, exact }) => {
+          const isActive = exact
+            ? pathname === href
+            : pathname === href || pathname.startsWith(`${href}/`)
 
           return (
             <Link
@@ -65,7 +63,7 @@ export function AdminSidebar() {
       <button
         type="button"
         onClick={logout}
-        className="mt-4 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100"
+        className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100"
       >
         <LogOut className="size-4" aria-hidden />
         Sair

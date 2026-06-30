@@ -87,9 +87,9 @@ export default function DashboardPage() {
           </Card.Header>
           <Card.Content className="space-y-3 px-5 pb-5">
             {[
-              'Rodar npm run dev na raiz do projeto',
-              'Implementar login e cadastro de empresas',
+              'Conta criada — configure sua empresa',
               'Criar primeiro evento com lotes',
+              'Publicar página de vendas',
               'Conectar pagamentos PIX e cartão',
             ].map((step, index) => (
               <div
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           <Card.Header className="px-5 pt-5">
             <Card.Title className="text-white">Status da API</Card.Title>
             <Card.Description>
-              Backend NestJS na porta 3001
+              Backend NestJS conectado com autenticação JWT
             </Card.Description>
           </Card.Header>
           <Card.Content className="px-5 pb-5">

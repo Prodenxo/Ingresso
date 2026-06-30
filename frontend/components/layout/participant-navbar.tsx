@@ -1,11 +1,11 @@
 'use client'
 
 import { Avatar, Button, Chip } from '@heroui/react'
-import { Bell, LogOut, Search } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { getTipoContaLabel } from '@/lib/auth-roles'
 
-interface AdminNavbarProps {
+interface ParticipantNavbarProps {
   title: string
   subtitle?: string
 }
@@ -18,9 +18,8 @@ function getInitials(name: string): string {
     .join('')
 }
 
-export function AdminNavbar({ title, subtitle }: AdminNavbarProps) {
+export function ParticipantNavbar({ title, subtitle }: ParticipantNavbarProps) {
   const { user, logout } = useAuth()
-  const empresa = user?.empresas[0]
 
   return (
     <header className="glass-panel flex items-center justify-between gap-4 rounded-2xl px-5 py-4">
@@ -29,42 +28,14 @@ export function AdminNavbar({ title, subtitle }: AdminNavbarProps) {
         {subtitle ? (
           <p className="text-sm text-zinc-400">{subtitle}</p>
         ) : null}
-        {empresa ? (
-          <p className="mt-1 text-xs text-zinc-500">{empresa.nome}</p>
-        ) : null}
       </div>
 
       <div className="flex items-center gap-3">
         {user ? (
-          <Chip
-            size="sm"
-            variant="soft"
-            color={user.tipoConta === 'SUPERADMIN' ? 'warning' : 'accent'}
-          >
+          <Chip size="sm" variant="soft" color="accent">
             {getTipoContaLabel(user.tipoConta)}
           </Chip>
         ) : null}
-
-        <label className="relative hidden sm:block">
-          <span className="sr-only">Buscar</span>
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-500"
-            aria-hidden
-          />
-          <input
-            type="search"
-            placeholder="Buscar eventos, pedidos..."
-            className="w-64 rounded-xl border border-white/10 bg-white/5 py-2 pr-3 pl-10 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-indigo-500/50"
-          />
-        </label>
-
-        <button
-          type="button"
-          className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-zinc-300 transition hover:bg-white/10"
-          aria-label="Notificações"
-        >
-          <Bell className="size-4" />
-        </button>
 
         <Avatar.Root className="size-9">
           <Avatar.Fallback>

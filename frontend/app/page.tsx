@@ -10,14 +10,22 @@ export default function HomePage() {
         Gestão de eventos e venda de ingressos
       </h1>
       <p className="max-w-md text-zinc-400">
-        Projeto rodando. Acesse o painel administrativo para continuar.
+        Crie sua conta, publique eventos e acompanhe vendas em tempo real.
       </p>
-      <Link
-        href="/dashboard"
-        className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-500"
-      >
-        Ir para o Dashboard
-      </Link>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link
+          href="/login"
+          className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+        >
+          Entrar
+        </Link>
+        <Link
+          href="/register"
+          className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-500"
+        >
+          Criar conta
+        </Link>
+      </div>
     </main>
   )
 }
