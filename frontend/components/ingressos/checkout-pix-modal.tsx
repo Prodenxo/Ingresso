@@ -3,6 +3,7 @@
 import { Button, Card, Input, Label } from '@heroui/react'
 import { Copy, Loader2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { IngressoQrCode } from '@/components/check-in/ingresso-qr-code'
 import { ApiError, apiFetch } from '@/lib/api-client'
 import { formatCurrency } from '@/lib/utils'
 import type { CheckoutResponse, PedidoStatusResponse } from '@/types/eventos'
@@ -243,18 +244,29 @@ export function CheckoutPixModal({
         {step === 'done' ? (
           <div className="space-y-4">
             <p className="text-sm text-zinc-400">
-              Seus ingressos foram gerados. Você também pode vê-los em Meus ingressos.
+              Seus ingressos foram gerados. Apresente o QR Code na entrada do evento.
             </p>
-            <ul className="space-y-2">
-              {ingressos.map((ingresso) => (
+            <ul className="space-y-4">
+              {ingressos.map((ingresso, index) => (
                 <li
                   key={ingresso.id}
-                  className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 font-mono text-sm text-emerald-200"
+                  className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4 text-center"
                 >
-                  {ingresso.codigo}
+                  {ingressos.length > 1 ? (
+                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-emerald-300/80">
+                      Ingresso {index + 1} de {ingressos.length}
+                    </p>
+                  ) : null}
+                  <IngressoQrCode codigo={ingresso.codigo} size={200} />
+                  <p className="mt-3 font-mono text-sm text-emerald-200">
+                    {ingresso.codigo}
+                  </p>
                 </li>
               ))}
             </ul>
+            <p className="text-center text-xs text-zinc-500">
+              Também disponível em Meus ingressos
+            </p>
             <Button variant="primary" className="w-full" onPress={handleClose}>
               Fechar
             </Button>

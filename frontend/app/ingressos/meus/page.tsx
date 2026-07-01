@@ -1,9 +1,10 @@
 'use client'
 
 import { Card, Chip } from '@heroui/react'
-import { CalendarDays, Ticket } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { CalendarDays, PartyPopper, Ticket } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { CheckInCelebrationModal } from '@/components/check-in/check-in-celebration-modal'
 import { ParticipantShell } from '@/components/layout/participant-shell'
 import { IngressoQrCode } from '@/components/check-in/ingresso-qr-code'
 import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas-card'
@@ -14,19 +15,58 @@ import { formatEventDate, getLoteNomeVitrine, statusLabel } from '@/lib/ingresso
 import { formatCurrency } from '@/lib/utils'
 import type { MeuIngresso } from '@/types/ingressos'
 
+interface CelebracaoCheckIn {
+  participanteNome: string
+  eventoNome: string
+}
+
 export default function MeusIngressosPage() {
   const { isReady, user } = useRequireParticipant()
   const [ingressos, setIngressos] = useState<MeuIngresso[]>([])
   const [isFetching, setIsFetching] = useState(true)
+  const [celebracao, setCelebracao] = useState<CelebracaoCheckIn | null>(null)
+  const statusAnteriorRef = useRef<Map<string, string>>(new Map())
+  const celebracaoMostradaRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    if (!isReady) {
+      return
+    }
+
     let active = true
 
-    async function loadIngressos() {
+    function aplicarIngressos(data: MeuIngresso[], detectarTransicao: boolean) {
+      for (const ingresso of data) {
+        const statusAnterior = statusAnteriorRef.current.get(ingresso.id)
+
+        if (
+          detectarTransicao &&
+          statusAnterior === 'VALIDO' &&
+          ingresso.status === 'UTILIZADO' &&
+          !celebracaoMostradaRef.current.has(ingresso.id)
+        ) {
+          celebracaoMostradaRef.current.add(ingresso.id)
+          setCelebracao({
+            participanteNome: ingresso.participanteNome,
+            eventoNome: ingresso.evento.nome,
+          })
+
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate([100, 50, 100])
+          }
+        }
+
+        statusAnteriorRef.current.set(ingresso.id, ingresso.status)
+      }
+
+      setIngressos(data)
+    }
+
+    async function loadIngressos(detectarTransicao: boolean) {
       try {
         const data = await apiFetch<MeuIngresso[]>('/ingressos/me')
         if (active) {
-          setIngressos(data)
+          aplicarIngressos(data, detectarTransicao)
         }
       } catch {
         if (active) {
@@ -39,12 +79,15 @@ export default function MeusIngressosPage() {
       }
     }
 
-    if (isReady) {
-      void loadIngressos()
-    }
+    void loadIngressos(false)
+
+    const interval = setInterval(() => {
+      void loadIngressos(true)
+    }, 4000)
 
     return () => {
       active = false
+      clearInterval(interval)
     }
   }, [isReady])
 
@@ -61,6 +104,13 @@ export default function MeusIngressosPage() {
           : 'Vincule-se a uma empresa para ver seus ingressos'
       }
     >
+      {celebracao ? (
+        <CheckInCelebrationModal
+          participanteNome={celebracao.participanteNome}
+          eventoNome={celebracao.eventoNome}
+          onClose={() => setCelebracao(null)}
+        />
+      ) : null}
       {!temVinculoEmpresa(user) ? (
         <Card className="glass-panel rounded-2xl border-white/10 p-8 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
@@ -135,7 +185,17 @@ export default function MeusIngressosPage() {
                   <span className="text-zinc-500">Participante:</span>{' '}
                   {ingresso.participanteNome}
                 </p>
-                {ingresso.qrCodeUrl ? (
+                {ingresso.status === 'UTILIZADO' ? (
+                  <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4 text-center">
+                    <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-200">
+                      <PartyPopper className="size-5" aria-hidden />
+                    </div>
+                    <p className="font-medium text-emerald-100">Entrada confirmada!</p>
+                    <p className="mt-2 text-sm text-emerald-100/80">
+                      Tenha um ótimo evento — aproveite cada momento!
+                    </p>
+                  </div>
+                ) : ingresso.qrCodeUrl ? (
                   <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 text-center">
                     <IngressoQrCode codigo={ingresso.qrCodeUrl} size={180} />
                     <p className="mt-3 text-xs uppercase tracking-wide text-indigo-300/80">
@@ -145,7 +205,7 @@ export default function MeusIngressosPage() {
                       {ingresso.qrCodeUrl}
                     </p>
                     <p className="mt-2 text-xs text-zinc-500">
-                      Apresente este QR Code na entrada do evento.
+                      Apresente este QR Code na entrada — a equipe vai escanear.
                     </p>
                   </div>
                 ) : null}

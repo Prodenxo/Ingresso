@@ -71,6 +71,10 @@ export default function CheckInPage() {
         setResultado(response)
 
         if (response.resultado === 'VALIDO') {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate(200)
+          }
+
           setEventos((atual) =>
             atual.map((evento) =>
               evento.id === eventoId
@@ -154,7 +158,7 @@ export default function CheckInPage() {
 
         {resultado ? <CheckInResultCard result={resultado} /> : null}
 
-        {!modoManual && eventoId ? (
+        {!modoManual && eventoId && !resultado ? (
           <CheckInScanner
             active={!isValidando && Boolean(eventoId)}
             onScan={(codigo) => void validarCodigo(codigo)}

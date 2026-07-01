@@ -17,9 +17,10 @@ export function IngressoQrCode({ codigo, size = 200 }: IngressoQrCodeProps) {
     void QRCode.toDataURL(codigo, {
       width: size,
       margin: 2,
+      errorCorrectionLevel: 'M',
       color: {
-        dark: '#ffffff',
-        light: '#00000000',
+        dark: '#000000',
+        light: '#ffffff',
       },
     }).then((url) => {
       if (active) {
@@ -48,7 +49,7 @@ export function IngressoQrCode({ codigo, size = 200 }: IngressoQrCodeProps) {
       alt={`QR Code do ingresso ${codigo}`}
       width={size}
       height={size}
-      className="mx-auto rounded-xl border border-white/10 bg-white/5 p-3"
+      className="mx-auto rounded-xl bg-white p-3 shadow-sm"
     />
   )
 }
