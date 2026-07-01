@@ -46,15 +46,36 @@ export interface CheckoutResponse {
   codigo: string
   total: number
   status: string
-  gateway: 'mock-pix' | 'inter-pix'
-  pixCopiaCola: string
+  gateway: 'mock-pix' | 'inter-pix' | 'mock-boleto' | 'inter-boleto'
+  metodo?: 'PIX' | 'BOLETO'
+  pixCopiaCola?: string
+  linhaDigitavel?: string
+  codigoBarras?: string | null
+  dataVencimento?: string
+  boletoPdfUrl?: string | null
   expiraEm: string | null
 }
 
 export interface PedidoStatusResponse {
   pedidoId: string
   status: string
-  gateway: 'mock-pix' | 'inter-pix'
+  gateway: 'mock-pix' | 'inter-pix' | 'mock-boleto' | 'inter-boleto'
+  metodo?: string
   expiraEm: string | null
-  ingressos: Array<{ id: string; codigo: string }>
+  linhaDigitavel?: string | null
+  boletoPdfUrl?: string | null
+  ingressos: Array<{ id: string; codigo: string; participanteNome: string }>
+}
+
+export interface ParticipanteAdicionalInput {
+  nome: string
+  cpf: string
+  telefone: string
+}
+
+export interface CheckoutRequest {
+  quantidade: number
+  metodo?: 'PIX' | 'BOLETO'
+  compradorCpf?: string
+  participantesAdicionais?: ParticipanteAdicionalInput[]
 }

@@ -12,6 +12,7 @@ import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
 import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
 import { formatEventDate, getLoteNomeVitrine, statusLabel } from '@/lib/ingressos-utils'
+import { formatCpf, formatTelefone } from '@/lib/cpf'
 import { formatCurrency } from '@/lib/utils'
 import type { MeuIngresso } from '@/types/ingressos'
 
@@ -208,6 +209,18 @@ export default function MeusIngressosPage() {
                   <span className="text-zinc-500">Participante:</span>{' '}
                   {ingresso.participanteNome}
                 </p>
+                {ingresso.participanteCpf ? (
+                  <p>
+                    <span className="text-zinc-500">CPF:</span>{' '}
+                    {formatCpf(ingresso.participanteCpf)}
+                  </p>
+                ) : null}
+                {ingresso.participanteTelefone ? (
+                  <p>
+                    <span className="text-zinc-500">Celular:</span>{' '}
+                    {formatTelefone(ingresso.participanteTelefone)}
+                  </p>
+                ) : null}
               </Card.Content>
             </Card>
             )

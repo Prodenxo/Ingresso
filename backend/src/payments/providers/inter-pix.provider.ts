@@ -16,6 +16,15 @@ import {
 } from './inter-pix.constants'
 import { mapInterHttpError, mapInterNetworkError } from './inter-pix.errors'
 import { interMtlsRequest } from './inter-pix-http.client'
+import {
+  normalizeInterPem,
+  requestInterOAuthToken,
+  validateInterCredentials,
+} from './inter-pix.oauth'
+import {
+  probeInterOAuthScopes,
+  summarizeInterScopeProbes,
+} from './inter-pix.probe'
 import type {
   InterCobResponse,
   InterOAuthTokenResponse,
@@ -34,28 +43,27 @@ export class InterPixProvider implements PaymentProvider {
   async testConnection(
     creds: GatewayPagamentoCredenciais,
   ): Promise<PaymentConnectionResult> {
-    try {
-      const token = await this.obtainAccessToken(creds)
+    const validationError = validateInterCredentials(creds)
 
-      if (!token.access_token) {
-        return {
-          ok: false,
-          message: 'Resposta inválida do Banco Inter ao obter token',
-        }
-      }
+    if (validationError) {
+      return { ok: false, message: validationError }
+    }
 
-      const ambienteLabel =
-        creds.ambiente === 'producao' ? 'Produção' : 'Sandbox'
+    const ambienteLabel =
+      creds.ambiente === 'producao' ? 'Produção' : 'Sandbox'
 
-      return {
-        ok: true,
-        message: `Conexão validada com sucesso (${ambienteLabel})`,
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        message: mapInterNetworkError(error),
-      }
+    const probes = await probeInterOAuthScopes(
+      INTER_PIX_BASE_URLS[creds.ambiente],
+      creds,
+      INTER_PIX_REQUEST_TIMEOUT_MS,
+    )
+
+    const summary = summarizeInterScopeProbes(probes, ambienteLabel)
+
+    return {
+      ok: summary.ok,
+      pixHabilitado: summary.pixHabilitado,
+      message: summary.message,
     }
   }
 
@@ -130,41 +138,22 @@ export class InterPixProvider implements PaymentProvider {
     }
 
     const baseUrl = INTER_PIX_BASE_URLS[creds.ambiente]
-    const body = new URLSearchParams({
-      client_id: creds.clientId,
-      client_secret: creds.clientSecret,
-      grant_type: 'client_credentials',
-      scope: INTER_PIX_OAUTH_SCOPES,
-    }).toString()
+    const tokenResponse = await requestInterOAuthToken(
+      baseUrl,
+      creds,
+      INTER_PIX_REQUEST_TIMEOUT_MS,
+      INTER_PIX_OAUTH_SCOPES,
+    )
 
-    const response = await interMtlsRequest<InterOAuthTokenResponse>({
-      method: 'POST',
-      url: `${baseUrl}/oauth/v2/token`,
-      certificadoPem: creds.certificadoPem,
-      chavePrivadaPem: creds.chavePrivadaPem,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': String(Buffer.byteLength(body)),
-      },
-      body,
-      timeoutMs: INTER_PIX_REQUEST_TIMEOUT_MS,
-    })
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw new Error(
-        mapInterHttpError(response.statusCode, response.data, response.rawBody),
-      )
-    }
-
-    if (response.data.access_token) {
-      const expiresInMs = (response.data.expires_in ?? 3600) * 1000
+    if (tokenResponse.access_token) {
+      const expiresInMs = (tokenResponse.expires_in ?? 3600) * 1000
       this.tokenCache.set(cacheKey, {
-        accessToken: response.data.access_token,
+        accessToken: tokenResponse.access_token,
         expiresAt: Date.now() + expiresInMs,
       })
     }
 
-    return response.data
+    return tokenResponse
   }
 
   private async authenticatedRequest<T>(
@@ -196,8 +185,8 @@ export class InterPixProvider implements PaymentProvider {
       const response = await interMtlsRequest<T>({
         method: options.method,
         url: `${baseUrl}${options.path}`,
-        certificadoPem: creds.certificadoPem,
-        chavePrivadaPem: creds.chavePrivadaPem,
+        certificadoPem: normalizeInterPem(creds.certificadoPem),
+        chavePrivadaPem: normalizeInterPem(creds.chavePrivadaPem),
         headers,
         body: options.body,
         timeoutMs: INTER_PIX_REQUEST_TIMEOUT_MS,

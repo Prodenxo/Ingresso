@@ -5,7 +5,7 @@ describe('inter-pix.errors', () => {
     it('mapeia 401 para mensagem de credenciais', () => {
       expect(
         mapInterHttpError(401, { error_description: 'invalid_client' }, ''),
-      ).toBe('Credenciais inválidas: invalid_client')
+      ).toContain('invalid_client')
     })
 
     it('mapeia 403 para mensagem de permissão', () => {

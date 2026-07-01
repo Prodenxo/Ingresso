@@ -3,6 +3,8 @@ import type { GatewayPagamentoCredenciais } from '../configuracoes/gateway-pagam
 export interface PaymentConnectionResult {
   ok: boolean
   message?: string
+  /** true quando os escopos Pix (cobrança imediata) foram aceitos pelo Inter */
+  pixHabilitado?: boolean
 }
 
 export interface PixChargeParams {

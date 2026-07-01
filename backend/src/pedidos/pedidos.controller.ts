@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, Res, UseGuards } from '@nestjs/common'
+import type { Response } from 'express'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import type { AuthenticatedUser } from '../auth/types/jwt-payload.type'
@@ -17,6 +18,23 @@ export class PedidosController {
     @Body() dto: CheckoutDto,
   ) {
     return this.pedidosService.checkoutLote(loteId, user.id, dto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/boleto/pdf')
+  async obterPdfBoleto(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ) {
+    const pdf = await this.pedidosService.obterPdfBoleto(id, user.id)
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="boleto-${id}.pdf"`,
+    )
+    res.send(pdf)
   }
 
   @UseGuards(JwtAuthGuard)

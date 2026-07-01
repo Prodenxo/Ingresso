@@ -18,6 +18,7 @@ import type {
   GatewayPagamentoResumo,
   GatewayProvider,
   GatewayStatus,
+  TestarConexaoPagamentoResponse,
 } from './gateway-pagamento.types'
 
 @Injectable()
@@ -85,6 +86,16 @@ export class ConfiguracoesPagamentosService {
     const existente = await this.prisma.empresaGatewayPagamento.findUnique({
       where: { empresaId },
     })
+
+    if (dto.clientId?.trim() && existente?.clientIdEnc && !dto.clientSecret?.trim()) {
+      const clientIdAtual = decryptField(existente.clientIdEnc)
+
+      if (dto.clientId.trim() !== clientIdAtual) {
+        throw new BadRequestException(
+          'Ao alterar o Client ID, informe o Client Secret novamente',
+        )
+      }
+    }
 
     const clientId = this.resolveTextField(
       dto.clientId,
@@ -173,7 +184,7 @@ export class ConfiguracoesPagamentosService {
     return { message: 'Configuração de pagamento removida' }
   }
 
-  async testarConexao(usuarioId: string): Promise<GatewayPagamentoResumo> {
+  async testarConexao(usuarioId: string): Promise<TestarConexaoPagamentoResponse> {
     const empresaId = await this.empresaAccess.assertPagamentoConfigAccess(
       usuarioId,
     )
@@ -196,9 +207,11 @@ export class ConfiguracoesPagamentosService {
       where: { empresaId },
       data: result.ok
         ? {
-            status: 'conectado',
-            conectadoEm: new Date(),
-            ultimoErro: null,
+            status: result.pixHabilitado ? 'conectado' : 'pendente',
+            conectadoEm: result.pixHabilitado ? new Date() : null,
+            ultimoErro: result.pixHabilitado
+              ? null
+              : (result.message ?? 'Pix ainda não habilitado no Inter'),
           }
         : {
             status: 'erro',
@@ -206,7 +219,14 @@ export class ConfiguracoesPagamentosService {
           },
     })
 
-    return this.obterResumo(usuarioId)
+    const resumo = await this.obterResumo(usuarioId)
+
+    return {
+      ...resumo,
+      testeOk: result.ok,
+      testeMensagem: result.message ?? null,
+      pixHabilitado: result.pixHabilitado ?? false,
+    }
   }
 
   async obterCredenciaisDescriptografadas(
@@ -223,8 +243,8 @@ export class ConfiguracoesPagamentosService {
     return {
       provider: gateway.provider as GatewayProvider,
       ambiente: gateway.ambiente as GatewayAmbiente,
-      clientId: decryptField(gateway.clientIdEnc),
-      clientSecret: decryptField(gateway.clientSecretEnc),
+      clientId: decryptField(gateway.clientIdEnc).trim(),
+      clientSecret: decryptField(gateway.clientSecretEnc).trim(),
       certificadoPem: decryptField(gateway.certificadoEnc),
       chavePrivadaPem: decryptField(gateway.chavePrivadaEnc),
       webhookSecret: gateway.webhookSecretEnc

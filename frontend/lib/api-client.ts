@@ -105,6 +105,36 @@ export async function apiFetch<T>(
   return (await response.json()) as T
 }
 
+export async function apiFetchBlob(
+  path: string,
+  retry = true,
+): Promise<Blob> {
+  const headers = new Headers()
+  const accessToken = getAccessToken()
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
+
+  const response = await fetch(`${getApiUrl()}${path}`, { headers }).catch(() => {
+    throw new ApiError(getNetworkErrorMessage(), 0)
+  })
+
+  if (response.status === 401 && retry) {
+    const session = await refreshSession()
+
+    if (session) {
+      return apiFetchBlob(path, false)
+    }
+  }
+
+  if (!response.ok) {
+    throw new ApiError(await parseError(response), response.status)
+  }
+
+  return response.blob()
+}
+
 export async function apiUpload<T>(
   path: string,
   formData: FormData | null,

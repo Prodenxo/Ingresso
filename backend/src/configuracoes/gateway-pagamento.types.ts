@@ -26,6 +26,12 @@ export interface GatewayPagamentoResumo {
   atualizadoEm: string | null
 }
 
+export interface TestarConexaoPagamentoResponse extends GatewayPagamentoResumo {
+  testeOk: boolean
+  testeMensagem: string | null
+  pixHabilitado: boolean
+}
+
 export interface GatewayPagamentoCredenciais {
   provider: GatewayProvider
   ambiente: GatewayAmbiente

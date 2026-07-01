@@ -14,4 +14,9 @@ export const INTER_PIX_OAUTH_SCOPES = [
   'webhook.write',
 ].join(' ')
 
+export const INTER_BOLETO_OAUTH_SCOPES = [
+  'boleto-cobranca.read',
+  'boleto-cobranca.write',
+].join(' ')
+
 export const INTER_PIX_REQUEST_TIMEOUT_MS = 30_000

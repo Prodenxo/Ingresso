@@ -21,13 +21,18 @@ export class IngressosService {
 
     return this.prisma.ingresso.findMany({
       where: {
-        participanteEmail,
         empresaId: { in: empresaIds },
+        OR: [
+          { participanteEmail: participanteEmail },
+          { pedido: { compradorEmail: participanteEmail } },
+        ],
       },
       select: {
         id: true,
         status: true,
         participanteNome: true,
+        participanteCpf: true,
+        participanteTelefone: true,
         qrCodeUrl: true,
         utilizadoEm: true,
         createdAt: true,

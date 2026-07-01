@@ -52,22 +52,38 @@ export class EmpresaAccessService {
   }
 
   async assertPagamentoConfigAccess(usuarioId: string): Promise<string> {
-    const empresaId = await this.resolveEmpresaId(usuarioId)
-    const vinculo = await this.prisma.usuarioEmpresa.findFirst({
-      where: { usuarioId, empresaId },
-      select: { papel: true },
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { tipoConta: true },
     })
 
-    if (
-      !vinculo ||
-      (vinculo.papel !== 'ADMINISTRADOR' && vinculo.papel !== 'FINANCEIRO')
-    ) {
+    if (usuario?.tipoConta === TipoConta.SUPERADMIN) {
+      const primeiraEmpresa = await this.prisma.empresa.findFirst({
+        orderBy: { createdAt: 'asc' },
+      })
+
+      if (primeiraEmpresa) {
+        return primeiraEmpresa.id
+      }
+
+      throw new ForbiddenException('Nenhuma empresa cadastrada no sistema')
+    }
+
+    const vinculoAdmin = await this.prisma.usuarioEmpresa.findFirst({
+      where: {
+        usuarioId,
+        papel: { in: ['ADMINISTRADOR', 'FINANCEIRO'] },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    if (!vinculoAdmin) {
       throw new ForbiddenException(
         'Apenas administrador ou financeiro pode configurar pagamentos',
       )
     }
 
-    return empresaId
+    return vinculoAdmin.empresaId
   }
 
   async getEmpresasVinculadasIds(usuarioId: string): Promise<string[]> {

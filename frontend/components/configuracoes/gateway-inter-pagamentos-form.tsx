@@ -9,6 +9,7 @@ import { ApiError, apiFetch } from '@/lib/api-client'
 import type {
   GatewayPagamentoResumo,
   SalvarGatewayPagamentoPayload,
+  TestarConexaoPagamentoResponse,
 } from '@/types/configuracoes'
 
 const selectClassName =
@@ -37,7 +38,7 @@ const emptyForm: FormState = {
 function statusLabel(status: GatewayPagamentoResumo['status']): string {
   if (status === 'conectado') return 'Conectado'
   if (status === 'erro') return 'Erro'
-  if (status === 'pendente') return 'Pendente'
+  if (status === 'pendente') return 'Parcial'
   return 'Não configurado'
 }
 
@@ -138,6 +139,10 @@ export function GatewayInterPagamentosForm() {
       setError('Client Secret é obrigatório')
       setIsSaving(false)
       return
+    } else if (resumo?.configurado && form.clientId.trim()) {
+      setError('Ao alterar o Client ID, informe o Client Secret novamente')
+      setIsSaving(false)
+      return
     }
 
     if (form.certificadoPem.trim()) {
@@ -195,18 +200,23 @@ export function GatewayInterPagamentosForm() {
     setIsTesting(true)
 
     try {
-      const data = await apiFetch<GatewayPagamentoResumo>(
+      const data = await apiFetch<TestarConexaoPagamentoResponse>(
         '/configuracoes/pagamentos/testar',
         { method: 'POST' },
       )
       setResumo(data)
 
-      if (data.status === 'conectado') {
-        setSuccess('Conexão com o Banco Inter validada com sucesso.')
+      if (data.testeOk && data.pixHabilitado) {
+        setSuccess(data.testeMensagem ?? 'Pix habilitado e conexão validada.')
+      } else if (data.testeOk && !data.pixHabilitado) {
+        setSuccess(
+          data.testeMensagem ??
+            'Credenciais válidas (boleto). Habilite Pix Cobrança no portal Inter.',
+        )
       } else if (data.ultimoErro) {
         setError(data.ultimoErro)
       } else {
-        setError('Não foi possível validar a conexão com o Banco Inter')
+        setError(data.testeMensagem ?? 'Não foi possível validar a conexão com o Banco Inter')
       }
     } catch (err) {
       setError(
@@ -292,7 +302,13 @@ export function GatewayInterPagamentosForm() {
           </div>
 
           {resumo.ultimoErro ? (
-            <p className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <p
+              className={`mt-3 rounded-xl border px-4 py-3 text-sm ${
+                resumo.status === 'pendente'
+                  ? 'border-amber-500/20 bg-amber-500/10 text-amber-200'
+                  : 'border-red-500/20 bg-red-500/10 text-red-300'
+              }`}
+            >
               {resumo.ultimoErro}
             </p>
           ) : null}
@@ -370,12 +386,19 @@ export function GatewayInterPagamentosForm() {
           onChange={(event) => updateField('clientSecret', event.target.value)}
           placeholder={
             resumo?.temClientSecret
-              ? 'Deixe em branco para manter o atual'
+              ? 'Cole novamente para confirmar ou atualizar'
               : 'Cole o Client Secret'
           }
-          required={!resumo?.temClientSecret}
+          required={!resumo?.temClientSecret || resumo?.status === 'erro'}
           autoComplete="off"
         />
+        {resumo?.status === 'erro' ? (
+          <p className="text-xs text-amber-300/90">
+            Se o teste falhou, re-digite o Client Secret (copie do portal Inter),
+            salve e teste de novo. Certificado e chave devem ser do mesmo download
+            dessa integração.
+          </p>
+        ) : null}
 
         <PemFileField
           id="certificadoPem"

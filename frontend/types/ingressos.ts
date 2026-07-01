@@ -32,6 +32,8 @@ export interface MeuIngresso {
   id: string
   status: string
   participanteNome: string
+  participanteCpf: string | null
+  participanteTelefone: string | null
   qrCodeUrl: string | null
   utilizadoEm: string | null
   createdAt: string

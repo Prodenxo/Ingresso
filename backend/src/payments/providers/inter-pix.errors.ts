@@ -1,10 +1,20 @@
 interface InterOAuthErrorBody {
   error?: string
   error_description?: string
+  error_title?: string
+  error_detail?: string
   message?: string
   title?: string
   detail?: string
+  violacoes?: Array<{
+    razao?: string
+    propriedade?: string
+    valor?: string
+  }>
 }
+
+const INTER_CREDENTIALS_HINT =
+  'Client ID, Client Secret, certificado (.crt) e chave (.key) precisam ser da mesma integração no Internet Banking Inter, no ambiente correto (Sandbox ou Produção). Re-digite o Client Secret e salve antes de testar.'
 
 export function mapInterHttpError(
   statusCode: number,
@@ -12,23 +22,36 @@ export function mapInterHttpError(
   rawBody: string,
 ): string {
   const payload = (body ?? {}) as InterOAuthErrorBody
+  const violacoes = payload.violacoes
+    ?.map((item) => item.razao)
+    .filter(Boolean)
+    .join(' ')
   const detail =
-    payload.error_description ??
-    payload.detail ??
-    payload.message ??
-    payload.title ??
+    violacoes ||
+    payload.error_description ||
+    payload.error_detail ||
+    payload.detail ||
+    payload.error_title ||
+    payload.message ||
+    payload.title ||
     payload.error
 
   if (statusCode === 401) {
     return detail
-      ? `Credenciais inválidas: ${detail}`
-      : 'Client ID ou Client Secret incorretos'
+      ? `Inter rejeitou as credenciais (${detail}). ${INTER_CREDENTIALS_HINT}`
+      : `Client ID ou Client Secret incorretos. ${INTER_CREDENTIALS_HINT}`
   }
 
   if (statusCode === 403) {
     return detail
       ? `Permissão negada: ${detail}`
       : 'Integração sem permissão para os escopos Pix. Verifique as permissões no portal Inter'
+  }
+
+  if (statusCode === 429) {
+    return detail
+      ? `${detail} Aguarde alguns segundos e tente novamente.`
+      : 'Muitas requisições ao Banco Inter. Aguarde alguns segundos e tente novamente.'
   }
 
   if (statusCode === 0 || statusCode >= 500) {
