@@ -2,23 +2,27 @@
 
 import { Card } from '@heroui/react'
 import { ShieldAlert } from 'lucide-react'
-import { GatewayInterPagamentosForm } from '@/components/configuracoes/gateway-inter-pagamentos-form'
 import { AdminShell } from '@/components/layout/admin-shell'
+import { ConviteMembrosPanel } from '@/components/membros/convite-membros-panel'
+import { MembrosVinculadosPanel } from '@/components/membros/membros-vinculados-panel'
 import { useAuth } from '@/components/auth/auth-provider'
-import { canConfigurarPagamentos } from '@/lib/auth-roles'
+import { canGerenciarConviteMembros } from '@/lib/auth-roles'
 
-export default function ConfiguracoesPage() {
+export default function MembrosPage() {
   const { user } = useAuth()
-  const podeConfigurar = canConfigurarPagamentos(user)
+  const podeGerenciar = canGerenciarConviteMembros(user)
 
   return (
     <AdminShell
-      title="Configurações"
-      subtitle="Pagamentos e integrações da sua empresa"
+      title="Membros"
+      subtitle="Convites, vínculos e acesso exclusivo à sua empresa"
     >
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
-        {podeConfigurar ? (
-          <GatewayInterPagamentosForm />
+        {podeGerenciar ? (
+          <>
+            <ConviteMembrosPanel />
+            <MembrosVinculadosPanel />
+          </>
         ) : (
           <Card className="glass-panel rounded-2xl border-white/10 p-6">
             <div className="flex items-start gap-3">
@@ -26,8 +30,8 @@ export default function ConfiguracoesPage() {
               <div>
                 <h2 className="font-medium text-white">Sem permissão</h2>
                 <p className="mt-1 text-sm text-zinc-400">
-                  Apenas administradores e financeiro podem alterar estas
-                  configurações.
+                  Apenas administradores podem gerenciar convites e membros
+                  vinculados.
                 </p>
               </div>
             </div>

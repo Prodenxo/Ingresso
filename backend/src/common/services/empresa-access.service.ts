@@ -69,4 +69,49 @@ export class EmpresaAccessService {
 
     return empresaId
   }
+
+  async getEmpresasVinculadasIds(usuarioId: string): Promise<string[]> {
+    const vinculos = await this.prisma.usuarioEmpresa.findMany({
+      where: { usuarioId },
+      select: { empresaId: true },
+    })
+
+    return vinculos.map((vinculo) => vinculo.empresaId)
+  }
+
+  async assertVinculoEmpresa(
+    usuarioId: string,
+    empresaId: string,
+  ): Promise<void> {
+    const vinculo = await this.prisma.usuarioEmpresa.findUnique({
+      where: {
+        empresaId_usuarioId: {
+          empresaId,
+          usuarioId,
+        },
+      },
+    })
+
+    if (!vinculo) {
+      throw new ForbiddenException(
+        'Você precisa estar vinculado à empresa para acessar este conteúdo',
+      )
+    }
+  }
+
+  async assertAdministradorEmpresa(usuarioId: string): Promise<string> {
+    const empresaId = await this.resolveEmpresaId(usuarioId)
+    const vinculo = await this.prisma.usuarioEmpresa.findFirst({
+      where: { usuarioId, empresaId },
+      select: { papel: true },
+    })
+
+    if (!vinculo || vinculo.papel !== 'ADMINISTRADOR') {
+      throw new ForbiddenException(
+        'Apenas administradores podem gerenciar convites de membros',
+      )
+    }
+
+    return empresaId
+  }
 }

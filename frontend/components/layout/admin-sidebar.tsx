@@ -10,24 +10,31 @@ import {
   QrCode,
   Settings,
   Ticket,
+  Users,
   Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
+import { canGerenciarConviteMembros } from '@/lib/auth-roles'
 import { cn } from '@/lib/utils'
 
-const navItems = [
+const baseNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/eventos', label: 'Eventos', icon: CalendarDays },
   { href: '/ingressos', label: 'Ingressos', icon: Ticket },
   { href: '/check-in', label: 'Check-in', icon: QrCode },
   { href: '/financeiro', label: 'Financeiro', icon: Wallet },
   { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { href: '/membros', label: 'Membros', icon: Users, requiresMembros: true },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
+
+  const navItems = baseNavItems.filter(
+    (item) => !item.requiresMembros || canGerenciarConviteMembros(user),
+  )
 
   return (
     <aside className="glass-panel flex h-full w-64 shrink-0 flex-col rounded-2xl p-4">

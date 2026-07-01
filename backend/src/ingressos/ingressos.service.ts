@@ -1,15 +1,29 @@
 import { Injectable } from '@nestjs/common'
+import { EmpresaAccessService } from '../common/services/empresa-access.service'
 import { PrismaService } from '../prisma/prisma.service'
 
 @Injectable()
 export class IngressosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly empresaAccess: EmpresaAccessService,
+  ) {}
 
-  async findByParticipanteEmail(email: string) {
+  async findByParticipante(usuarioId: string, email: string) {
+    const empresaIds =
+      await this.empresaAccess.getEmpresasVinculadasIds(usuarioId)
+
+    if (empresaIds.length === 0) {
+      return []
+    }
+
     const participanteEmail = email.trim().toLowerCase()
 
     return this.prisma.ingresso.findMany({
-      where: { participanteEmail },
+      where: {
+        participanteEmail,
+        empresaId: { in: empresaIds },
+      },
       select: {
         id: true,
         status: true,

@@ -1,13 +1,17 @@
 'use client'
 
 import { Button, Card, Chip } from '@heroui/react'
+import Link from 'next/link'
 import { ShoppingCart } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { CheckoutPixModal } from '@/components/ingressos/checkout-pix-modal'
 import { EventoVitrineCard } from '@/components/ingressos/evento-vitrine-card'
+import { VincularCodigoCard } from '@/components/membros/vincular-codigo-card'
+import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas-card'
 import { ParticipantShell } from '@/components/layout/participant-shell'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
+import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
 import { buildCheckoutLoteLabel } from '@/lib/ingressos-utils'
 import type { EventoDisponivel, LoteDisponivel } from '@/types/ingressos'
 
@@ -19,7 +23,7 @@ interface CheckoutTarget {
 }
 
 export default function IngressosDisponiveisPage() {
-  const { isReady } = useRequireParticipant()
+  const { isReady, user, refreshUser } = useRequireParticipant()
   const [disponiveis, setDisponiveis] = useState<EventoDisponivel[]>([])
   const [isFetching, setIsFetching] = useState(true)
   const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget | null>(
@@ -49,17 +53,51 @@ export default function IngressosDisponiveisPage() {
     return null
   }
 
+  const vinculado = temVinculoEmpresa(user)
+
   return (
     <ParticipantShell
       title="Ingressos"
-      subtitle="Eventos com ingressos disponíveis para compra"
+      subtitle={
+        vinculado
+          ? 'Eventos disponíveis nas empresas vinculadas à sua conta'
+          : 'Vincule-se a uma empresa para ver eventos exclusivos'
+      }
     >
-      {isFetching ? (
+      {!vinculado ? (
+        <div className="mx-auto max-w-lg space-y-4">
+          <Card className="glass-panel rounded-2xl border-white/10 p-6 text-center">
+            <h3 className="text-lg font-medium text-white">
+              Você ainda não está vinculado
+            </h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Peça o link ou código de convite à organização do evento.
+            </p>
+            <Link
+              href="/ingressos/vincular"
+              className="mt-4 inline-block text-sm text-indigo-300 hover:underline"
+            >
+              Inserir código de convite
+            </Link>
+          </Card>
+          <VincularCodigoCard
+            onSuccess={() => {
+              void refreshUser()
+              void loadDisponiveis()
+            }}
+          />
+        </div>
+      ) : isFetching ? (
         <Card className="glass-panel rounded-2xl border-white/10 p-6">
           <p className="text-sm text-zinc-400">Carregando eventos...</p>
         </Card>
       ) : disponiveis.length === 0 ? (
-        <Card className="glass-panel rounded-2xl border-white/10 p-8 text-center">
+        <div className="mx-auto max-w-lg space-y-4">
+          <EmpresasVinculadasCard
+            empresas={getEmpresasMembro(user)}
+            showLinkIngressos={false}
+          />
+          <Card className="glass-panel rounded-2xl border-white/10 p-8 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
             <ShoppingCart className="size-5" aria-hidden />
           </div>
@@ -67,9 +105,10 @@ export default function IngressosDisponiveisPage() {
             Nenhum ingresso à venda no momento
           </h3>
           <p className="mt-2 text-sm text-zinc-400">
-            Quando organizadores publicarem eventos, eles aparecerão aqui.
+            Quando a empresa publicar eventos, eles aparecerão aqui.
           </p>
-        </Card>
+          </Card>
+        </div>
       ) : (
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {disponiveis.map((evento) => (

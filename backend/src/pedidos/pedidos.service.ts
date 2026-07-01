@@ -15,6 +15,7 @@ import {
 import { createHash, randomBytes } from 'crypto'
 import { hashPassword } from '../common/crypto/password'
 import { ConfiguracoesPagamentosService } from '../configuracoes/configuracoes-pagamentos.service'
+import { EmpresaAccessService } from '../common/services/empresa-access.service'
 import { PaymentProviderFactory } from '../payments/payment-provider.factory'
 import { InterPixProvider } from '../payments/providers/inter-pix.provider'
 import { PrismaService } from '../prisma/prisma.service'
@@ -43,6 +44,7 @@ export class PedidosService {
     private readonly configuracoesPagamentos: ConfiguracoesPagamentosService,
     private readonly paymentProviderFactory: PaymentProviderFactory,
     private readonly interPixProvider: InterPixProvider,
+    private readonly empresaAccess: EmpresaAccessService,
   ) {}
 
   async checkoutLote(
@@ -69,6 +71,8 @@ export class PedidosService {
     if (!lote?.evento) {
       throw new NotFoundException('Lote não encontrado')
     }
+
+    await this.empresaAccess.assertVinculoEmpresa(usuarioId, lote.empresaId)
 
     if (lote.evento.status !== StatusEvento.PUBLICADO) {
       throw new BadRequestException('Evento não está publicado')

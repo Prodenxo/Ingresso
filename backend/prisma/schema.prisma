@@ -20,6 +20,7 @@ enum PapelUsuario {
   MARKETING
   CHECKIN
   LEITOR
+  MEMBRO
 }
 
 enum StatusEvento {
@@ -97,6 +98,8 @@ model Empresa {
   endereco        Json?
   dadosBancarios  Json?    @map("dados_bancarios")
   gatewayPagamento String? @map("gateway_pagamento")
+  slugMembro       String?  @unique @map("slug_membro")
+  codigoConvite    String?  @unique @map("codigo_convite")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 

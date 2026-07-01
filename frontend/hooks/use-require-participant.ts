@@ -7,7 +7,7 @@ import { isPainelAdmin } from '@/lib/auth-roles'
 
 export function useRequireParticipant() {
   const router = useRouter()
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, refreshUser } = useAuth()
 
   useEffect(() => {
     if (!isLoading && user && isPainelAdmin(user)) {
@@ -17,5 +17,5 @@ export function useRequireParticipant() {
 
   const isReady = !isLoading && Boolean(user) && !isPainelAdmin(user)
 
-  return { user, isLoading, isReady }
+  return { user, isLoading, isReady, refreshUser }
 }

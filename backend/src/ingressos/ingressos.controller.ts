@@ -11,6 +11,6 @@ export class IngressosController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   findMine(@CurrentUser() user: AuthenticatedUser) {
-    return this.ingressosService.findByParticipanteEmail(user.email)
+    return this.ingressosService.findByParticipante(user.id, user.email)
   }
 }

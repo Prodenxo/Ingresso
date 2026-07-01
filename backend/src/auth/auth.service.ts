@@ -8,6 +8,8 @@ import { JwtService } from '@nestjs/jwt'
 import { PapelUsuario, TipoConta } from '@prisma/client'
 import type { StringValue } from 'ms'
 import { hashPassword, verifyPassword } from '../common/crypto/password'
+import { gerarCodigoConvite } from '../common/utils/codigo-convite'
+import { buildUniqueSlug } from '../common/utils/slug'
 import { PrismaService } from '../prisma/prisma.service'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
@@ -104,6 +106,13 @@ export class AuthService {
           nome: dto.nomeEmpresa!.trim(),
           razaoSocial: dto.razaoSocial!.trim(),
           cnpj,
+          slugMembro: await buildUniqueSlug(dto.nomeEmpresa!.trim(), async (candidate) => {
+            const exists = await tx.empresa.findFirst({
+              where: { slugMembro: candidate },
+            })
+            return Boolean(exists)
+          }),
+          codigoConvite: gerarCodigoConvite(),
         },
       })
 

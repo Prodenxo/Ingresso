@@ -90,13 +90,20 @@ export class EventosService {
     private readonly mediaService: EventosMediaService,
   ) {}
 
-  async findDisponiveis() {
+  async findDisponiveis(usuarioId: string) {
+    const empresaIds =
+      await this.empresaAccess.getEmpresasVinculadasIds(usuarioId)
+
+    if (empresaIds.length === 0) {
+      return []
+    }
+
     const now = new Date()
 
     const eventos = await this.prisma.evento.findMany({
       where: {
+        empresaId: { in: empresaIds },
         status: StatusEvento.PUBLICADO,
-        visibilidade: VisibilidadeEvento.PUBLICO,
         OR: [{ dataFim: null }, { dataFim: { gte: now } }],
         lotes: {
           some: {

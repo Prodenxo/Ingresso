@@ -47,12 +47,10 @@ export class EventosController {
 
 
 
+  @UseGuards(JwtAuthGuard)
   @Get('disponiveis')
-
-  findDisponiveis() {
-
-    return this.eventosService.findDisponiveis()
-
+  findDisponiveis(@CurrentUser() user: AuthenticatedUser) {
+    return this.eventosService.findDisponiveis(user.id)
   }
 
 

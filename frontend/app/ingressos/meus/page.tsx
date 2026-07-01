@@ -3,15 +3,18 @@
 import { Card, Chip } from '@heroui/react'
 import { CalendarDays, Ticket } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { ParticipantShell } from '@/components/layout/participant-shell'
+import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas-card'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
+import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
 import { formatEventDate, getLoteNomeVitrine, statusLabel } from '@/lib/ingressos-utils'
 import { formatCurrency } from '@/lib/utils'
 import type { MeuIngresso } from '@/types/ingressos'
 
 export default function MeusIngressosPage() {
-  const { isReady } = useRequireParticipant()
+  const { isReady, user } = useRequireParticipant()
   const [ingressos, setIngressos] = useState<MeuIngresso[]>([])
   const [isFetching, setIsFetching] = useState(true)
 
@@ -51,14 +54,39 @@ export default function MeusIngressosPage() {
   return (
     <ParticipantShell
       title="Meus ingressos"
-      subtitle="Ingressos vinculados ao seu e-mail"
+      subtitle={
+        temVinculoEmpresa(user)
+          ? 'Ingressos das empresas vinculadas à sua conta'
+          : 'Vincule-se a uma empresa para ver seus ingressos'
+      }
     >
-      {isFetching ? (
+      {!temVinculoEmpresa(user) ? (
+        <Card className="glass-panel rounded-2xl border-white/10 p-8 text-center">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
+            <Ticket className="size-5" aria-hidden />
+          </div>
+          <h3 className="text-lg font-medium text-white">Nenhum vínculo ainda</h3>
+          <p className="mt-2 text-sm text-zinc-400">
+            Use o link ou código de convite da empresa para acessar seus ingressos.
+          </p>
+          <Link
+            href="/ingressos/vincular"
+            className="mt-4 inline-block text-sm text-indigo-300 hover:underline"
+          >
+            Vincular empresa
+          </Link>
+        </Card>
+      ) : isFetching ? (
         <Card className="glass-panel rounded-2xl border-white/10 p-6">
           <p className="text-sm text-zinc-400">Carregando ingressos...</p>
         </Card>
       ) : ingressos.length === 0 ? (
-        <Card className="glass-panel rounded-2xl border-white/10 p-8 text-center">
+        <div className="mx-auto max-w-lg space-y-4">
+          <EmpresasVinculadasCard
+            empresas={getEmpresasMembro(user)}
+            showLinkIngressos={false}
+          />
+          <Card className="glass-panel rounded-2xl border-white/10 p-8 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
             <Ticket className="size-5" aria-hidden />
           </div>
@@ -67,6 +95,7 @@ export default function MeusIngressosPage() {
             Quando você comprar ingressos, eles aparecerão aqui.
           </p>
         </Card>
+        </div>
       ) : (
         <div className="grid gap-4">
           {ingressos.map((ingresso) => {
