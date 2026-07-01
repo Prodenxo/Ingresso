@@ -24,13 +24,15 @@ export function EventoVitrineCard({ evento, onComprar }: EventoVitrineCardProps)
 
   return (
     <Card className="glass-panel overflow-hidden rounded-2xl border-white/10 p-0">
-      <div className="flex gap-4 p-4 sm:gap-5 sm:p-5">
-        <EventoPoster
-          imagemUrl={evento.imagemUrl}
-          bannerUrl={evento.bannerUrl}
-          nome={evento.nome}
-          size="md"
-        />
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:gap-5 sm:p-5">
+        <div className="mx-auto w-full max-w-[200px] shrink-0 sm:mx-0 sm:max-w-none">
+          <EventoPoster
+            imagemUrl={evento.imagemUrl}
+            bannerUrl={evento.bannerUrl}
+            nome={evento.nome}
+            size="md"
+          />
+        </div>
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -87,7 +89,7 @@ export function EventoVitrineCard({ evento, onComprar }: EventoVitrineCardProps)
             return (
               <div
                 key={lote.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/3 px-3 py-2.5 sm:px-4"
+                className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4"
               >
                 <div className="min-w-0">
                   {nomeVitrine ? (
@@ -108,6 +110,7 @@ export function EventoVitrineCard({ evento, onComprar }: EventoVitrineCardProps)
                 <Button
                   variant="primary"
                   size="sm"
+                  className="w-full sm:w-auto"
                   isDisabled={lote.disponiveis < 1}
                   onPress={() => onComprar(lote)}
                 >

@@ -3,7 +3,7 @@
 import { Button, Card, Input, Label } from '@heroui/react'
 import { Copy, Loader2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { IngressoQrCode } from '@/components/check-in/ingresso-qr-code'
+import { IngressoQrCodeResponsive } from '@/components/check-in/ingresso-qr-code-responsive'
 import { ApiError, apiFetch } from '@/lib/api-client'
 import { formatCurrency } from '@/lib/utils'
 import type { CheckoutResponse, PedidoStatusResponse } from '@/types/eventos'
@@ -141,12 +141,12 @@ export function CheckoutPixModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-title"
     >
-      <Card className="glass-panel w-full max-w-md rounded-2xl border-white/10 p-5">
+      <Card className="glass-panel max-h-[92vh] w-full overflow-y-auto rounded-t-2xl rounded-b-none border-white/10 p-5 sm:max-w-md sm:rounded-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 id="checkout-title" className="text-lg font-medium text-white">
@@ -257,7 +257,7 @@ export function CheckoutPixModal({
                       Ingresso {index + 1} de {ingressos.length}
                     </p>
                   ) : null}
-                  <IngressoQrCode codigo={ingresso.codigo} size={200} />
+                  <IngressoQrCodeResponsive codigo={ingresso.codigo} />
                   <p className="mt-3 font-mono text-sm text-emerald-200">
                     {ingresso.codigo}
                   </p>

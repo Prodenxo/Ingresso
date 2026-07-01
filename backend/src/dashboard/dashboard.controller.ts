@@ -15,6 +15,12 @@ export class DashboardController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('controle-entrada')
+  getControleEntrada(@CurrentUser() user: AuthenticatedUser) {
+    return this.dashboardService.getControleEntrada(user.id)
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('financeiro')
   getFinanceiro(@CurrentUser() user: AuthenticatedUser) {
     return this.dashboardService.getFinanceiro(user.id)

@@ -5,6 +5,7 @@ import { Keyboard, ScanLine } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { CheckInResultCard } from '@/components/check-in/check-in-result-card'
 import { CheckInScanner } from '@/components/check-in/check-in-scanner'
+import { ControleEntradaPanel } from '@/components/dashboard/controle-entrada-panel'
 import { CheckInShell } from '@/components/layout/check-in-shell'
 import { useAuth } from '@/components/auth/auth-provider'
 import { ApiError, apiFetch } from '@/lib/api-client'
@@ -28,6 +29,7 @@ export default function CheckInPage() {
   const [isLoadingEventos, setIsLoadingEventos] = useState(true)
   const [isValidando, setIsValidando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0)
 
   const podeCheckin = canFazerCheckin(user)
 
@@ -48,6 +50,18 @@ export default function CheckInPage() {
         setError(err instanceof ApiError ? err.message : 'Erro ao carregar eventos')
       })
       .finally(() => setIsLoadingEventos(false))
+  }, [podeCheckin])
+
+  useEffect(() => {
+    if (!podeCheckin) {
+      return
+    }
+
+    const interval = setInterval(() => {
+      setStatsRefreshKey((atual) => atual + 1)
+    }, 15000)
+
+    return () => clearInterval(interval)
   }, [podeCheckin])
 
   const validarCodigo = useCallback(
@@ -74,6 +88,8 @@ export default function CheckInPage() {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
             navigator.vibrate(200)
           }
+
+          setStatsRefreshKey((atual) => atual + 1)
 
           setEventos((atual) =>
             atual.map((evento) =>
@@ -225,6 +241,8 @@ export default function CheckInPage() {
             Próximo ingresso
           </Button>
         ) : null}
+
+        <ControleEntradaPanel refreshKey={statsRefreshKey} />
       </div>
     </CheckInShell>
   )

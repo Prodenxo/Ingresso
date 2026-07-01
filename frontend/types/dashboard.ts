@@ -20,6 +20,27 @@ export interface DashboardOverview {
   pedidosRecentes: PedidoResumo[]
 }
 
+export interface ControleEntradaEvento {
+  id: string
+  nome: string
+  dataInicio: string
+  status: string
+  vendidos: number
+  validados: number
+  aguardandoEntrada: number
+  taxaEntrada: number
+}
+
+export interface ControleEntradaResumo {
+  totais: {
+    vendidos: number
+    validados: number
+    aguardandoEntrada: number
+    taxaEntrada: number
+  }
+  eventos: ControleEntradaEvento[]
+}
+
 export interface FinanceiroResumo {
   receita: number
   pedidosPagos: number

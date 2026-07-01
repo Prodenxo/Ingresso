@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CheckInCelebrationModal } from '@/components/check-in/check-in-celebration-modal'
 import { ParticipantShell } from '@/components/layout/participant-shell'
-import { IngressoQrCode } from '@/components/check-in/ingresso-qr-code'
+import { IngressoQrCodeResponsive } from '@/components/check-in/ingresso-qr-code-responsive'
 import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas-card'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
@@ -155,15 +155,15 @@ export default function MeusIngressosPage() {
             return (
             <Card
               key={ingresso.id}
-              className="glass-panel rounded-2xl border-white/10 p-0"
+              className="glass-panel overflow-hidden rounded-2xl border-white/10 p-0"
             >
-              <Card.Header className="flex flex-row items-start justify-between gap-4 px-5 pt-5">
-                <div>
-                  <Card.Title className="text-white">
+              <Card.Header className="flex flex-row items-start justify-between gap-3 px-4 pt-4 md:px-5 md:pt-5">
+                <div className="min-w-0">
+                  <Card.Title className="text-base text-white md:text-lg">
                     {ingresso.evento.nome}
                   </Card.Title>
-                  <Card.Description className="mt-1 flex items-center gap-2 text-zinc-400">
-                    <CalendarDays className="size-4" aria-hidden />
+                  <Card.Description className="mt-1 flex items-center gap-2 text-xs text-zinc-400 md:text-sm">
+                    <CalendarDays className="size-4 shrink-0" aria-hidden />
                     {formatEventDate(ingresso.evento.dataInicio)}
                   </Card.Description>
                 </div>
@@ -171,7 +171,30 @@ export default function MeusIngressosPage() {
                   {statusLabel(ingresso.status)}
                 </Chip>
               </Card.Header>
-              <Card.Content className="space-y-3 px-5 pb-5 text-sm text-zinc-300">
+
+              {ingresso.status === 'UTILIZADO' ? (
+                <div className="mx-4 mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-6 text-center md:mx-5">
+                  <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-200">
+                    <PartyPopper className="size-5" aria-hidden />
+                  </div>
+                  <p className="font-medium text-emerald-100">Entrada confirmada!</p>
+                  <p className="mt-2 text-sm text-emerald-100/80">
+                    Tenha um ótimo evento — aproveite cada momento!
+                  </p>
+                </div>
+              ) : ingresso.qrCodeUrl ? (
+                <div className="border-y border-indigo-500/20 bg-indigo-500/5 px-4 py-6 text-center md:px-5">
+                  <IngressoQrCodeResponsive codigo={ingresso.qrCodeUrl} />
+                  <p className="mt-4 text-xs uppercase tracking-wide text-indigo-300/80">
+                    Apresente na entrada
+                  </p>
+                  <p className="mt-2 font-mono text-sm text-indigo-100">
+                    {ingresso.qrCodeUrl}
+                  </p>
+                </div>
+              ) : null}
+
+              <Card.Content className="space-y-2 px-4 pb-4 text-sm text-zinc-300 md:px-5 md:pb-5">
                 {nomeLote ? (
                   <p>
                     <span className="text-zinc-500">Lote:</span> {nomeLote}
@@ -185,30 +208,6 @@ export default function MeusIngressosPage() {
                   <span className="text-zinc-500">Participante:</span>{' '}
                   {ingresso.participanteNome}
                 </p>
-                {ingresso.status === 'UTILIZADO' ? (
-                  <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4 text-center">
-                    <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-200">
-                      <PartyPopper className="size-5" aria-hidden />
-                    </div>
-                    <p className="font-medium text-emerald-100">Entrada confirmada!</p>
-                    <p className="mt-2 text-sm text-emerald-100/80">
-                      Tenha um ótimo evento — aproveite cada momento!
-                    </p>
-                  </div>
-                ) : ingresso.qrCodeUrl ? (
-                  <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 text-center">
-                    <IngressoQrCode codigo={ingresso.qrCodeUrl} size={180} />
-                    <p className="mt-3 text-xs uppercase tracking-wide text-indigo-300/80">
-                      Código do ingresso
-                    </p>
-                    <p className="mt-1 font-mono text-sm text-indigo-100">
-                      {ingresso.qrCodeUrl}
-                    </p>
-                    <p className="mt-2 text-xs text-zinc-500">
-                      Apresente este QR Code na entrada — a equipe vai escanear.
-                    </p>
-                  </div>
-                ) : null}
               </Card.Content>
             </Card>
             )

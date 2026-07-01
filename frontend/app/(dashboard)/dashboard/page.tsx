@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AdminShell } from '@/components/layout/admin-shell'
+import { ControleEntradaPanel } from '@/components/dashboard/controle-entrada-panel'
 import { useAuth } from '@/components/auth/auth-provider'
 import { apiFetch } from '@/lib/api-client'
 import { canFazerCheckin } from '@/lib/auth-roles'
@@ -157,6 +158,10 @@ export default function DashboardPage() {
                 </Card.Content>
               </Card>
             ))}
+      </div>
+
+      <div className="mt-6">
+        <ControleEntradaPanel />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">

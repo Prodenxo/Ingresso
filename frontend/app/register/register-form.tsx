@@ -94,8 +94,8 @@ export function RegisterForm() {
   }
 
   return (
-    <main className="mesh-bg flex min-h-screen items-center justify-center p-6">
-      <div className="glass-panel w-full max-w-xl rounded-2xl p-8">
+    <main className="mesh-bg flex min-h-screen items-center justify-center p-4 pb-8">
+      <div className="glass-panel w-full max-w-xl rounded-2xl p-6 sm:p-8">
         <div className="mb-8 text-center">
           <p className="text-sm font-medium uppercase tracking-widest text-indigo-400">
             EventHub

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { StatusEvento, StatusPedido } from '@prisma/client'
+import { StatusEvento, StatusIngresso, StatusPedido } from '@prisma/client'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
 import { PrismaService } from '../prisma/prisma.service'
 
@@ -73,6 +73,100 @@ export class DashboardService {
         eventoNome: pedido.evento.nome,
         createdAt: pedido.createdAt.toISOString(),
       })),
+    }
+  }
+
+  async getControleEntrada(usuarioId: string) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
+
+    const [totaisAgg, eventos, contagensPorEvento] = await Promise.all([
+      this.prisma.ingresso.groupBy({
+        by: ['status'],
+        where: { empresaId },
+        _count: { _all: true },
+      }),
+      this.prisma.evento.findMany({
+        where: { empresaId },
+        orderBy: { dataInicio: 'desc' },
+        select: {
+          id: true,
+          nome: true,
+          dataInicio: true,
+          status: true,
+        },
+      }),
+      this.prisma.ingresso.groupBy({
+        by: ['eventoId', 'status'],
+        where: { empresaId },
+        _count: { _all: true },
+      }),
+    ])
+
+    const totaisPorStatus = new Map(
+      totaisAgg.map((item) => [item.status, item._count._all]),
+    )
+
+    const vendidos = totaisAgg.reduce((acc, item) => acc + item._count._all, 0)
+    const validados = totaisPorStatus.get(StatusIngresso.UTILIZADO) ?? 0
+    const aguardandoEntrada = totaisPorStatus.get(StatusIngresso.VALIDO) ?? 0
+
+    const eventoStatsMap = new Map<
+      string,
+      { vendidos: number; validados: number; aguardandoEntrada: number }
+    >()
+
+    for (const item of contagensPorEvento) {
+      const atual = eventoStatsMap.get(item.eventoId) ?? {
+        vendidos: 0,
+        validados: 0,
+        aguardandoEntrada: 0,
+      }
+
+      atual.vendidos += item._count._all
+
+      if (item.status === StatusIngresso.UTILIZADO) {
+        atual.validados += item._count._all
+      }
+
+      if (item.status === StatusIngresso.VALIDO) {
+        atual.aguardandoEntrada += item._count._all
+      }
+
+      eventoStatsMap.set(item.eventoId, atual)
+    }
+
+    const eventosComIngressos = eventos
+      .map((evento) => {
+        const stats = eventoStatsMap.get(evento.id) ?? {
+          vendidos: 0,
+          validados: 0,
+          aguardandoEntrada: 0,
+        }
+
+        return {
+          id: evento.id,
+          nome: evento.nome,
+          dataInicio: evento.dataInicio.toISOString(),
+          status: evento.status,
+          vendidos: stats.vendidos,
+          validados: stats.validados,
+          aguardandoEntrada: stats.aguardandoEntrada,
+          taxaEntrada:
+            stats.vendidos > 0
+              ? Math.round((stats.validados / stats.vendidos) * 100)
+              : 0,
+        }
+      })
+      .filter((evento) => evento.vendidos > 0)
+
+    return {
+      totais: {
+        vendidos,
+        validados,
+        aguardandoEntrada,
+        taxaEntrada: vendidos > 0 ? Math.round((validados / vendidos) * 100) : 0,
+      },
+      eventos: eventosComIngressos,
     }
   }
 
