@@ -89,6 +89,18 @@ enum TipoNotificacao {
   LEMBRETE
 }
 
+enum StatusCurso {
+  RASCUNHO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum TipoCursoAula {
+  VIDEO
+  PDF
+  TEXTO
+}
+
 model Empresa {
   id              String   @id @default(uuid())
   nome            String
@@ -117,6 +129,8 @@ model Empresa {
   auditoriaLogs   AuditoriaLog[]
   configuracao    ConfiguracaoEmpresa?
   gatewayConfig   EmpresaGatewayPagamento?
+  cursos          Curso[]
+  cursosUsuariosAcesso CursoUsuarioAcesso[]
 
   @@map("empresas")
 }
@@ -158,6 +172,8 @@ model Usuario {
 
   empresas     UsuarioEmpresa[]
   checkins     Checkin[]
+  cursosAcesso CursoUsuarioAcesso[]
+  aulasProgresso CursoAulaProgresso[]
 
   @@map("usuarios")
 }
@@ -166,10 +182,11 @@ model UsuarioEmpresa {
   id        String       @id @default(uuid())
   empresaId String       @map("empresa_id")
   usuarioId String       @map("usuario_id")
-  papel     PapelUsuario
-  permissoes Json        @default("[]")
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
+  papel         PapelUsuario
+  permissoes    Json         @default("[]")
+  acessoCursos  Boolean      @default(false) @map("acesso_cursos")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -445,4 +462,97 @@ model ConfiguracaoEmpresa {
   empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   @@map("configuracoes_empresa")
+}
+
+model Curso {
+  id          String      @id @default(uuid())
+  empresaId   String      @map("empresa_id")
+  titulo      String
+  descricao   String?     @db.Text
+  capaUrl     String?     @map("capa_url")
+  status      StatusCurso @default(RASCUNHO)
+  ordem       Int         @default(0)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  empresa  Empresa              @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  modulos  CursoModulo[]
+  acessos  CursoUsuarioAcesso[]
+
+  @@index([empresaId])
+  @@map("cursos")
+}
+
+model CursoModulo {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  cursoId   String   @map("curso_id")
+  titulo    String
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  curso Curso       @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  aulas CursoAula[]
+
+  @@index([empresaId])
+  @@index([cursoId])
+  @@map("cursos_modulos")
+}
+
+model CursoAula {
+  id             String        @id @default(uuid())
+  empresaId      String        @map("empresa_id")
+  moduloId       String        @map("modulo_id")
+  titulo         String
+  tipo           TipoCursoAula
+  conteudoUrl    String?       @map("conteudo_url") @db.Text
+  conteudoTexto  String?       @map("conteudo_texto") @db.Text
+  duracaoMinutos Int?          @map("duracao_minutos")
+  ordem          Int           @default(0)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  modulo     CursoModulo          @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  progressos CursoAulaProgresso[]
+
+  @@index([empresaId])
+  @@index([moduloId])
+  @@map("cursos_aulas")
+}
+
+model CursoUsuarioAcesso {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  cursoId   String   @map("curso_id")
+  usuarioId String   @map("usuario_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  curso   Curso   @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([cursoId, usuarioId])
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@map("cursos_usuarios_acesso")
+}
+
+model CursoAulaProgresso {
+  id           String    @id @default(uuid())
+  empresaId    String    @map("empresa_id")
+  aulaId       String    @map("aula_id")
+  usuarioId    String    @map("usuario_id")
+  concluida    Boolean   @default(false)
+  progressoPct Int       @default(0) @map("progresso_pct")
+  concluidaEm  DateTime? @map("concluida_em")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  aula    CursoAula @relation(fields: [aulaId], references: [id], onDelete: Cascade)
+  usuario Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([aulaId, usuarioId])
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@map("cursos_aulas_progresso")
 }

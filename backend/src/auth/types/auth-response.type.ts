@@ -10,6 +10,7 @@ export interface AuthUserResponse {
     nome: string
     cnpj: string
     papel: PapelUsuario
+    acessoCursos: boolean
   }>
 }
 

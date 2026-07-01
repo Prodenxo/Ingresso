@@ -200,6 +200,7 @@ export class AuthService {
         empresas: {
           select: {
             papel: true,
+            acessoCursos: true,
             empresa: {
               select: {
                 id: true,
@@ -303,6 +304,7 @@ export class AuthService {
     tipoConta: TipoConta
     empresas: Array<{
       papel: PapelUsuario
+      acessoCursos: boolean
       empresa: {
         id: string
         nome: string
@@ -315,11 +317,12 @@ export class AuthService {
       nome: usuario.nome,
       email: usuario.email,
       tipoConta: usuario.tipoConta,
-      empresas: usuario.empresas.map(({ empresa, papel }) => ({
+      empresas: usuario.empresas.map(({ empresa, papel, acessoCursos }) => ({
         id: empresa.id,
         nome: empresa.nome,
         cnpj: empresa.cnpj,
         papel,
+        acessoCursos,
       })),
     }
   }

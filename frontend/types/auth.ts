@@ -7,6 +7,7 @@ export interface AuthEmpresa {
   nome: string
   cnpj: string
   papel: string
+  acessoCursos?: boolean
 }
 
 export interface AuthUser {

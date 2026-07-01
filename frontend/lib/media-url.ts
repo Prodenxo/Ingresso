@@ -1,6 +1,6 @@
 import { getApiUrl } from '@/lib/public-env'
 
-const UPLOAD_PATH_PATTERN = /\/api\/uploads\/eventos\/[^/?#]+/i
+const UPLOAD_PATH_PATTERN = /\/api\/uploads\/(?:eventos|cursos)\/[^/?#]+/i
 
 function extractUploadPath(path: string): string | null {
   const match = path.match(UPLOAD_PATH_PATTERN)

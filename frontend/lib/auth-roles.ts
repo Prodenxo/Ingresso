@@ -35,6 +35,26 @@ export function canGerenciarConviteMembros(user: AuthUser | null): boolean {
   return user.empresas.some((empresa) => empresa.papel === 'ADMINISTRADOR')
 }
 
+export function canGerenciarCursos(user: AuthUser | null): boolean {
+  if (!user) {
+    return false
+  }
+
+  if (user.tipoConta === 'SUPERADMIN') {
+    return true
+  }
+
+  return user.empresas.some((empresa) => empresa.papel === 'ADMINISTRADOR')
+}
+
+export function temAcessoCursos(user: AuthUser | null): boolean {
+  if (!user) {
+    return false
+  }
+
+  return user.empresas.some((empresa) => empresa.acessoCursos === true)
+}
+
 export function canFazerCheckin(user: AuthUser | null): boolean {
   if (!user) {
     return false

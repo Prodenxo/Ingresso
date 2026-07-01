@@ -1,6 +1,7 @@
 import {
   BarChart3,
   CalendarDays,
+  GraduationCap,
   LayoutDashboard,
   QrCode,
   Settings,
@@ -10,7 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { AuthUser } from '@/types/auth'
-import { canFazerCheckin, canGerenciarConviteMembros } from '@/lib/auth-roles'
+import { canFazerCheckin, canGerenciarConviteMembros, canGerenciarCursos } from '@/lib/auth-roles'
 
 export interface AdminNavItem {
   href: string
@@ -18,6 +19,7 @@ export interface AdminNavItem {
   icon: LucideIcon
   requiresMembros?: boolean
   requiresCheckin?: boolean
+  requiresCursos?: boolean
   mobilePrimary?: boolean
 }
 
@@ -63,6 +65,12 @@ export const adminNavItems: AdminNavItem[] = [
     requiresMembros: true,
   },
   {
+    href: '/cursos',
+    label: 'Cursos',
+    icon: GraduationCap,
+    requiresCursos: true,
+  },
+  {
     href: '/configuracoes',
     label: 'Configurações',
     icon: Settings,
@@ -76,6 +84,10 @@ export function getAdminNavItems(user: AuthUser | null): AdminNavItem[] {
     }
 
     if (item.requiresCheckin && !canFazerCheckin(user)) {
+      return false
+    }
+
+    if (item.requiresCursos && !canGerenciarCursos(user)) {
       return false
     }
 

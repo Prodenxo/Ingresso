@@ -1,12 +1,13 @@
 import {
   Building2,
+  GraduationCap,
   Link2,
   ShoppingCart,
   Ticket,
   type LucideIcon,
 } from 'lucide-react'
 import type { AuthUser } from '@/types/auth'
-import { getEmpresasMembro } from '@/lib/auth-roles'
+import { getEmpresasMembro, temAcessoCursos } from '@/lib/auth-roles'
 
 export interface ParticipantNavItem {
   href: string
@@ -18,8 +19,9 @@ export interface ParticipantNavItem {
 
 export function getParticipantNavItems(user: AuthUser | null): ParticipantNavItem[] {
   const temVinculo = getEmpresasMembro(user).length > 0
+  const mostrarCursos = temAcessoCursos(user)
 
-  return [
+  const items: ParticipantNavItem[] = [
     {
       href: '/ingressos',
       label: 'Eventos',
@@ -33,14 +35,26 @@ export function getParticipantNavItems(user: AuthUser | null): ParticipantNavIte
       icon: Ticket,
       mobilePrimary: true,
     },
-    {
-      href: '/ingressos/vincular',
-      label: temVinculo ? 'Empresas' : 'Vincular',
-      icon: temVinculo ? Building2 : Link2,
-      exact: true,
-      mobilePrimary: true,
-    },
   ]
+
+  if (mostrarCursos) {
+    items.push({
+      href: '/ingressos/cursos',
+      label: 'Cursos',
+      icon: GraduationCap,
+      mobilePrimary: true,
+    })
+  }
+
+  items.push({
+    href: '/ingressos/vincular',
+    label: temVinculo ? 'Empresas' : 'Vincular',
+    icon: temVinculo ? Building2 : Link2,
+    exact: true,
+    mobilePrimary: true,
+  })
+
+  return items
 }
 
 export function getEmpresasVinculadasLabel(user: AuthUser | null): string | null {
