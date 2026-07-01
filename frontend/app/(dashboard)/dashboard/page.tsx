@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ArrowUpRight,
   CalendarDays,
+  QrCode,
   Ticket,
   TrendingUp,
 } from 'lucide-react'
@@ -12,7 +13,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AdminShell } from '@/components/layout/admin-shell'
+import { useAuth } from '@/components/auth/auth-provider'
 import { apiFetch } from '@/lib/api-client'
+import { canFazerCheckin } from '@/lib/auth-roles'
 import { formatCurrency } from '@/lib/utils'
 import type { DashboardOverview } from '@/types/dashboard'
 
@@ -46,6 +49,7 @@ function formatDateTime(value: string): string {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -94,6 +98,26 @@ export default function DashboardPage() {
       title="Dashboard"
       subtitle="Visão operacional dos seus eventos e ingressos"
     >
+      {canFazerCheckin(user) ? (
+        <Link
+          href="/check-in"
+          className="mb-4 block rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4 transition hover:bg-indigo-500/15 md:hidden"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-200">
+              <QrCode className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-white">Validar ingressos na porta</p>
+              <p className="text-sm text-indigo-100/70">
+                Abrir leitor de QR Code para check-in
+              </p>
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-indigo-300" aria-hidden />
+          </div>
+        </Link>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, index) => (

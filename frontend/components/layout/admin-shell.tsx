@@ -1,4 +1,5 @@
 import { AdminNavbar } from '@/components/layout/admin-navbar'
+import { AdminMobileNav } from '@/components/layout/admin-mobile-nav'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
 
 interface AdminShellProps {
@@ -9,7 +10,7 @@ interface AdminShellProps {
 
 export function AdminShell({ children, title, subtitle }: AdminShellProps) {
   return (
-    <div className="mesh-bg min-h-screen p-4 md:p-6">
+    <div className="mesh-bg min-h-screen p-4 pb-24 md:p-6 md:pb-6">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1600px] gap-4 md:gap-6">
         <div className="hidden md:block">
           <AdminSidebar />
@@ -20,6 +21,8 @@ export function AdminShell({ children, title, subtitle }: AdminShellProps) {
           <main className="flex-1">{children}</main>
         </div>
       </div>
+
+      <AdminMobileNav />
     </div>
   )
 }
