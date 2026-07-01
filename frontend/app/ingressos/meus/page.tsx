@@ -5,6 +5,7 @@ import { CalendarDays, Ticket } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ParticipantShell } from '@/components/layout/participant-shell'
+import { IngressoQrCode } from '@/components/check-in/ingresso-qr-code'
 import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas-card'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
@@ -135,15 +136,16 @@ export default function MeusIngressosPage() {
                   {ingresso.participanteNome}
                 </p>
                 {ingresso.qrCodeUrl ? (
-                  <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
-                    <p className="text-xs uppercase tracking-wide text-indigo-300/80">
+                  <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 text-center">
+                    <IngressoQrCode codigo={ingresso.qrCodeUrl} size={180} />
+                    <p className="mt-3 text-xs uppercase tracking-wide text-indigo-300/80">
                       Código do ingresso
                     </p>
-                    <p className="mt-1 font-mono text-base text-indigo-100">
+                    <p className="mt-1 font-mono text-sm text-indigo-100">
                       {ingresso.qrCodeUrl}
                     </p>
                     <p className="mt-2 text-xs text-zinc-500">
-                      Apresente este código na entrada do evento.
+                      Apresente este QR Code na entrada do evento.
                     </p>
                   </div>
                 ) : null}

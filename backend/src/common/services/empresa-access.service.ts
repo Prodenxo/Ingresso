@@ -99,6 +99,34 @@ export class EmpresaAccessService {
     }
   }
 
+  async assertCheckinAccess(usuarioId: string): Promise<string> {
+    const empresaId = await this.resolveEmpresaId(usuarioId)
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { tipoConta: true },
+    })
+
+    if (usuario?.tipoConta === TipoConta.SUPERADMIN) {
+      return empresaId
+    }
+
+    const vinculo = await this.prisma.usuarioEmpresa.findFirst({
+      where: { usuarioId, empresaId },
+      select: { papel: true },
+    })
+
+    const papeisPermitidos = ['ADMINISTRADOR', 'OPERADOR', 'CHECKIN'] as const
+
+    if (!vinculo || !papeisPermitidos.includes(vinculo.papel as typeof papeisPermitidos[number])) {
+      throw new ForbiddenException(
+        'Você não tem permissão para realizar check-in',
+      )
+    }
+
+    return empresaId
+  }
+
   async assertAdministradorEmpresa(usuarioId: string): Promise<string> {
     const empresaId = await this.resolveEmpresaId(usuarioId)
     const vinculo = await this.prisma.usuarioEmpresa.findFirst({

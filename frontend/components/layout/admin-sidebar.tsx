@@ -14,14 +14,14 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
-import { canGerenciarConviteMembros } from '@/lib/auth-roles'
+import { canGerenciarConviteMembros, canFazerCheckin } from '@/lib/auth-roles'
 import { cn } from '@/lib/utils'
 
 const baseNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/eventos', label: 'Eventos', icon: CalendarDays },
   { href: '/ingressos', label: 'Ingressos', icon: Ticket },
-  { href: '/check-in', label: 'Check-in', icon: QrCode },
+  { href: '/check-in', label: 'Check-in', icon: QrCode, requiresCheckin: true },
   { href: '/financeiro', label: 'Financeiro', icon: Wallet },
   { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { href: '/membros', label: 'Membros', icon: Users, requiresMembros: true },
@@ -32,9 +32,17 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
-  const navItems = baseNavItems.filter(
-    (item) => !item.requiresMembros || canGerenciarConviteMembros(user),
-  )
+  const navItems = baseNavItems.filter((item) => {
+    if (item.requiresMembros && !canGerenciarConviteMembros(user)) {
+      return false
+    }
+
+    if (item.requiresCheckin && !canFazerCheckin(user)) {
+      return false
+    }
+
+    return true
+  })
 
   return (
     <aside className="glass-panel flex h-full w-64 shrink-0 flex-col rounded-2xl p-4">

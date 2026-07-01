@@ -35,6 +35,20 @@ export function canGerenciarConviteMembros(user: AuthUser | null): boolean {
   return user.empresas.some((empresa) => empresa.papel === 'ADMINISTRADOR')
 }
 
+export function canFazerCheckin(user: AuthUser | null): boolean {
+  if (!user) {
+    return false
+  }
+
+  if (user.tipoConta === 'SUPERADMIN') {
+    return true
+  }
+
+  return user.empresas.some((empresa) =>
+    ['ADMINISTRADOR', 'OPERADOR', 'CHECKIN'].includes(empresa.papel),
+  )
+}
+
 export function temVinculoEmpresa(user: AuthUser | null): boolean {
   return getEmpresasMembro(user).length > 0
 }
