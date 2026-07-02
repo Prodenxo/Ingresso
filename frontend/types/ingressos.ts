@@ -36,14 +36,10 @@ export interface MeuIngresso {
   participanteTelefone: string | null
   qrCodeUrl: string | null
   qrCodeVisivel?: boolean
+  presencaCompleta?: boolean
+  progressoCheckin?: { concluidos: number; total: number } | null
   utilizadoEm: string | null
   createdAt: string
-  checkins?: Array<{
-    diaEvento: number
-    pontoNome: string
-    pontoOrdem: number
-    realizadoEm: string
-  }>
   evento: {
     id: string
     nome: string

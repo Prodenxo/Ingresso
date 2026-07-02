@@ -11,6 +11,21 @@ export function statusLabel(status: string): string {
   return labels[status] ?? status
 }
 
+export function ingressoStatusLabel(ingresso: {
+  status: string
+  presencaCompleta?: boolean
+  evento: { modoCheckin?: 'PORTA_UNICA' | 'BATE_PONTO' }
+}): string {
+  if (
+    ingresso.evento.modoCheckin === 'BATE_PONTO' &&
+    (ingresso.presencaCompleta || ingresso.status === 'UTILIZADO')
+  ) {
+    return 'Concluído'
+  }
+
+  return statusLabel(ingresso.status)
+}
+
 export function formatEventDate(value: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'medium',

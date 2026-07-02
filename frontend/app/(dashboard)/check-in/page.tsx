@@ -2,7 +2,9 @@
 
 import { Button, Card, Input, Label } from '@heroui/react'
 import { Keyboard, ScanLine } from 'lucide-react'
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
+import { CheckInRelatorioPanel } from '@/components/check-in/check-in-relatorio-panel'
 import { CheckInResultCard } from '@/components/check-in/check-in-result-card'
 import { CheckInScanner } from '@/components/check-in/check-in-scanner'
 import { ControleEntradaPanel } from '@/components/dashboard/controle-entrada-panel'
@@ -188,6 +190,7 @@ export default function CheckInPage() {
             ) : null}
 
             {isBatePonto && eventoSelecionado ? (
+              <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="dia-checkin">Dia</Label>
@@ -227,6 +230,17 @@ export default function CheckInPage() {
                   </select>
                 </div>
               </div>
+              <p className="text-xs text-zinc-500">
+                Relatório detalhado com horários por participante disponível na{' '}
+                <Link
+                  href={`/eventos/${eventoSelecionado.id}`}
+                  className="text-indigo-300 hover:underline"
+                >
+                  página do evento
+                </Link>
+                .
+              </p>
+              </>
             ) : null}
           </div>
         </Card>
@@ -308,6 +322,10 @@ export default function CheckInPage() {
         ) : null}
 
         <ControleEntradaPanel refreshKey={statsRefreshKey} />
+
+        {isBatePonto && eventoSelecionado ? (
+          <CheckInRelatorioPanel eventoId={eventoSelecionado.id} />
+        ) : null}
       </div>
     </CheckInShell>
   )

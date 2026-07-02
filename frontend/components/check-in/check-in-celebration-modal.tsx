@@ -6,6 +6,7 @@ import { PartyPopper, X } from 'lucide-react'
 interface CheckInCelebrationModalProps {
   participanteNome: string
   eventoNome: string
+  variant?: 'entrada' | 'concluido'
   onClose: () => void
 }
 
@@ -16,8 +17,11 @@ function getPrimeiroNome(nome: string): string {
 export function CheckInCelebrationModal({
   participanteNome,
   eventoNome,
+  variant = 'entrada',
   onClose,
 }: CheckInCelebrationModalProps) {
+  const isConcluido = variant === 'concluido'
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -31,17 +35,27 @@ export function CheckInCelebrationModal({
         </div>
 
         <h2 id="checkin-celebration-title" className="text-xl font-semibold text-white">
-          Entrada confirmada!
+          {isConcluido ? 'Evento concluído!' : 'Entrada confirmada!'}
         </h2>
 
         <p className="mt-3 text-base leading-relaxed text-zinc-200">
-          Olá, {getPrimeiroNome(participanteNome)}! Seu check-in em{' '}
-          <span className="font-medium text-white">{eventoNome}</span> foi realizado com
-          sucesso.
+          Olá, {getPrimeiroNome(participanteNome)}!{' '}
+          {isConcluido ? (
+            <>
+              Você completou todos os bips em{' '}
+              <span className="font-medium text-white">{eventoNome}</span>.
+            </>
+          ) : (
+            <>
+              Seu check-in em{' '}
+              <span className="font-medium text-white">{eventoNome}</span> foi realizado com
+              sucesso.
+            </>
+          )}
         </p>
 
         <p className="mt-4 text-lg font-medium text-emerald-200">
-          Tenha um ótimo evento!
+          {isConcluido ? 'Obrigado pela participação!' : 'Tenha um ótimo evento!'}
         </p>
 
         <Button variant="primary" className="mt-6 w-full" onPress={onClose}>

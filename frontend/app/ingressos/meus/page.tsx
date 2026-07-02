@@ -11,7 +11,7 @@ import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
 import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
-import { formatEventDate, getLoteNomeVitrine, statusLabel } from '@/lib/ingressos-utils'
+import { formatEventDate, getLoteNomeVitrine, ingressoStatusLabel } from '@/lib/ingressos-utils'
 import { formatCpf, formatTelefone } from '@/lib/cpf'
 import { formatCurrency } from '@/lib/utils'
 import type { MeuIngresso } from '@/types/ingressos'
@@ -19,6 +19,7 @@ import type { MeuIngresso } from '@/types/ingressos'
 interface CelebracaoCheckIn {
   participanteNome: string
   eventoNome: string
+  variant: 'entrada' | 'concluido'
 }
 
 export default function MeusIngressosPage() {
@@ -42,7 +43,6 @@ export default function MeusIngressosPage() {
 
         if (
           detectarTransicao &&
-          ingresso.evento.modoCheckin !== 'BATE_PONTO' &&
           statusAnterior === 'VALIDO' &&
           ingresso.status === 'UTILIZADO' &&
           !celebracaoMostradaRef.current.has(ingresso.id)
@@ -51,6 +51,8 @@ export default function MeusIngressosPage() {
           setCelebracao({
             participanteNome: ingresso.participanteNome,
             eventoNome: ingresso.evento.nome,
+            variant:
+              ingresso.evento.modoCheckin === 'BATE_PONTO' ? 'concluido' : 'entrada',
           })
 
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -110,6 +112,7 @@ export default function MeusIngressosPage() {
         <CheckInCelebrationModal
           participanteNome={celebracao.participanteNome}
           eventoNome={celebracao.eventoNome}
+          variant={celebracao.variant}
           onClose={() => setCelebracao(null)}
         />
       ) : null}
@@ -153,6 +156,11 @@ export default function MeusIngressosPage() {
         <div className="grid gap-4">
           {ingressos.map((ingresso) => {
             const nomeLote = getLoteNomeVitrine(ingresso.lote.nome, 0, 1)
+            const isBatePonto = ingresso.evento.modoCheckin === 'BATE_PONTO'
+            const presencaCompleta =
+              ingresso.presencaCompleta ||
+              (isBatePonto && ingresso.status === 'UTILIZADO')
+            const progresso = ingresso.progressoCheckin
 
             return (
             <Card
@@ -170,54 +178,56 @@ export default function MeusIngressosPage() {
                   </Card.Description>
                 </div>
                 <Chip size="sm" variant="soft" color="accent">
-                  {statusLabel(ingresso.status)}
+                  {ingressoStatusLabel(ingresso)}
                 </Chip>
               </Card.Header>
 
-              {ingresso.status === 'UTILIZADO' &&
-              ingresso.evento.modoCheckin !== 'BATE_PONTO' ? (
+              {presencaCompleta ? (
                 <div className="mx-4 mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-6 text-center md:mx-5">
                   <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-200">
                     <PartyPopper className="size-5" aria-hidden />
                   </div>
-                  <p className="font-medium text-emerald-100">Entrada confirmada!</p>
+                  <p className="font-medium text-emerald-100">
+                    {isBatePonto ? 'Evento concluído!' : 'Entrada confirmada!'}
+                  </p>
                   <p className="mt-2 text-sm text-emerald-100/80">
-                    Tenha um ótimo evento — aproveite cada momento!
+                    {isBatePonto
+                      ? 'Sua presença foi registrada em todos os dias do evento.'
+                      : 'Tenha um ótimo evento — aproveite cada momento!'}
                   </p>
                 </div>
               ) : ingresso.qrCodeVisivel && ingresso.qrCodeUrl ? (
                 <div className="border-y border-indigo-500/20 bg-indigo-500/5 px-4 py-6 text-center md:px-5">
                   <IngressoQrCodeResponsive codigo={ingresso.qrCodeUrl} />
                   <p className="mt-4 text-xs uppercase tracking-wide text-indigo-300/80">
-                    {ingresso.evento.modoCheckin === 'BATE_PONTO'
-                      ? 'Apresente em cada bip'
-                      : 'Apresente na entrada'}
+                    {isBatePonto ? 'Apresente em cada bip' : 'Apresente na entrada'}
                   </p>
                   <p className="mt-2 font-mono text-sm text-indigo-100">
                     {ingresso.qrCodeUrl}
                   </p>
 
-                  {ingresso.evento.modoCheckin === 'BATE_PONTO' &&
-                  ingresso.checkins &&
-                  ingresso.checkins.length > 0 ? (
-                    <ul className="mx-auto mt-4 max-w-sm space-y-1 text-left text-xs text-zinc-400">
-                      {ingresso.checkins.map((registro, index) => (
-                        <li key={`${registro.diaEvento}-${registro.pontoOrdem}-${index}`}>
-                          ✓ Dia {registro.diaEvento} · {registro.pontoNome} —{' '}
-                          {new Intl.DateTimeFormat('pt-BR', {
-                            timeStyle: 'short',
-                          }).format(new Date(registro.realizadoEm))}
-                        </li>
-                      ))}
-                    </ul>
+                  {isBatePonto && progresso && progresso.total > 0 ? (
+                    <div className="mx-auto mt-4 max-w-xs">
+                      <p className="text-xs text-zinc-400">
+                        Progresso: {progresso.concluidos} de {progresso.total} bips
+                      </p>
+                      <div
+                        className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+                        role="progressbar"
+                        aria-valuenow={progresso.concluidos}
+                        aria-valuemin={0}
+                        aria-valuemax={progresso.total}
+                        aria-label="Progresso de check-in"
+                      >
+                        <div
+                          className="h-full rounded-full bg-indigo-400 transition-all"
+                          style={{
+                            width: `${Math.min(100, (progresso.concluidos / progresso.total) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
                   ) : null}
-                </div>
-              ) : ingresso.status === 'UTILIZADO' ? (
-                <div className="mx-4 mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-6 text-center md:mx-5">
-                  <p className="font-medium text-emerald-100">Presença completa!</p>
-                  <p className="mt-2 text-sm text-emerald-100/80">
-                    Todos os bips foram registrados.
-                  </p>
                 </div>
               ) : null}
 

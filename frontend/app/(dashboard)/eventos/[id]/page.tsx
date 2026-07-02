@@ -403,15 +403,18 @@ export default function EventoDetalhePage() {
         ) : null}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6">
         <EventoCheckinConfig
           evento={evento}
           onUpdated={(atualizado) => setEvento(atualizado)}
         />
-        {evento.modoCheckin === 'BATE_PONTO' ? (
-          <CheckInRelatorioPanel eventoId={evento.id} />
-        ) : null}
       </div>
+
+      {evento.modoCheckin === 'BATE_PONTO' ? (
+        <div className="mt-6">
+          <CheckInRelatorioPanel eventoId={evento.id} />
+        </div>
+      ) : null}
     </AdminShell>
   )
 }

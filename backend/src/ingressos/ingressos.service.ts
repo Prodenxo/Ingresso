@@ -74,30 +74,43 @@ export class IngressosService {
       orderBy: { createdAt: 'desc' },
     })
 
-    return ingressos.map((ingresso) => ({
-      ...ingresso,
-      createdAt: ingresso.createdAt.toISOString(),
-      utilizadoEm: ingresso.utilizadoEm?.toISOString() ?? null,
-      evento: {
-        ...ingresso.evento,
-        dataInicio: ingresso.evento.dataInicio.toISOString(),
-      },
-      checkins:
+    return ingressos.map((ingresso) => {
+      const isBatePonto =
         ingresso.evento.modoCheckin === ModoCheckinEvento.BATE_PONTO
-          ? ingresso.checkins
-              .filter((c) => c.diaEvento && c.pontoCheckin)
-              .map((c) => ({
-                diaEvento: c.diaEvento!,
-                pontoNome: c.pontoCheckin!.nome,
-                pontoOrdem: c.pontoCheckin!.ordem,
-                realizadoEm: c.createdAt.toISOString(),
-              }))
-          : [],
-      qrCodeVisivel:
-        ingresso.evento.modoCheckin === ModoCheckinEvento.BATE_PONTO
-          ? ingresso.status !== StatusIngresso.CANCELADO &&
-            ingresso.status !== StatusIngresso.EXPIRADO
+      const totalBips = isBatePonto
+        ? ingresso.evento.checkinDias * ingresso.evento.pontosCheckin.length
+        : 0
+      const checkinsValidos = ingresso.checkins.filter(
+        (c) => c.diaEvento && c.pontoCheckin,
+      )
+      const presencaCompleta =
+        isBatePonto && ingresso.status === StatusIngresso.UTILIZADO
+
+      return {
+        id: ingresso.id,
+        status: ingresso.status,
+        participanteNome: ingresso.participanteNome,
+        participanteCpf: ingresso.participanteCpf,
+        participanteTelefone: ingresso.participanteTelefone,
+        qrCodeUrl: ingresso.qrCodeUrl,
+        utilizadoEm: ingresso.utilizadoEm?.toISOString() ?? null,
+        createdAt: ingresso.createdAt.toISOString(),
+        presencaCompleta,
+        progressoCheckin: isBatePonto
+          ? {
+              concluidos: checkinsValidos.length,
+              total: totalBips,
+            }
+          : null,
+        evento: {
+          ...ingresso.evento,
+          dataInicio: ingresso.evento.dataInicio.toISOString(),
+        },
+        lote: ingresso.lote,
+        qrCodeVisivel: isBatePonto
+          ? ingresso.status === StatusIngresso.VALIDO
           : ingresso.status === StatusIngresso.VALIDO,
-    }))
+      }
+    })
   }
 }
