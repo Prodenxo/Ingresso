@@ -35,14 +35,24 @@ export interface MeuIngresso {
   participanteCpf: string | null
   participanteTelefone: string | null
   qrCodeUrl: string | null
+  qrCodeVisivel?: boolean
   utilizadoEm: string | null
   createdAt: string
+  checkins?: Array<{
+    diaEvento: number
+    pontoNome: string
+    pontoOrdem: number
+    realizadoEm: string
+  }>
   evento: {
     id: string
     nome: string
     dataInicio: string
     cidade: string | null
     estado: string | null
+    modoCheckin?: 'PORTA_UNICA' | 'BATE_PONTO'
+    checkinDias?: number
+    pontosCheckin?: Array<{ id: string; ordem: number; nome: string }>
   }
   lote: {
     id: string

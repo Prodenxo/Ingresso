@@ -34,6 +34,7 @@ import { CreateEventoDto } from './dto/create-evento.dto'
 
 import { CreateLoteDto } from './dto/create-lote.dto'
 
+import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto'
 import { UpdateEventoDto } from './dto/update-evento.dto'
 
 import { EventosService } from './eventos.service'
@@ -118,6 +119,26 @@ export class EventosController {
   ) {
 
     return this.eventosService.update(id, user.id, dto)
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard)
+
+  @Patch(':id/checkin-config')
+
+  configurarCheckin(
+
+    @Param('id') id: string,
+
+    @CurrentUser() user: AuthenticatedUser,
+
+    @Body() dto: ConfigCheckinEventoDto,
+
+  ) {
+
+    return this.eventosService.configurarCheckin(id, user.id, dto)
 
   }
 

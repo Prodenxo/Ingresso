@@ -30,6 +30,8 @@ export default function CheckInPage() {
   const [isValidando, setIsValidando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statsRefreshKey, setStatsRefreshKey] = useState(0)
+  const [diaEvento, setDiaEvento] = useState(1)
+  const [pontoCheckinId, setPontoCheckinId] = useState('')
 
   const podeCheckin = canFazerCheckin(user)
 
@@ -53,6 +55,14 @@ export default function CheckInPage() {
   }, [podeCheckin])
 
   useEffect(() => {
+    const evento = eventos.find((item) => item.id === eventoId)
+    if (!evento) return
+
+    setDiaEvento(1)
+    setPontoCheckinId(evento.pontosCheckin[0]?.id ?? '')
+  }, [eventoId, eventos])
+
+  useEffect(() => {
     if (!podeCheckin) {
       return
     }
@@ -74,12 +84,24 @@ export default function CheckInPage() {
       setError(null)
 
       try {
+        const eventoAtual = eventos.find((item) => item.id === eventoId)
+        const body: Record<string, string | number> = {
+          codigo: codigo.trim().toUpperCase(),
+          eventoId,
+        }
+
+        if (eventoAtual?.modoCheckin === 'BATE_PONTO') {
+          if (!pontoCheckinId) {
+            setError('Selecione o ponto de check-in')
+            return
+          }
+          body.diaEvento = diaEvento
+          body.pontoCheckinId = pontoCheckinId
+        }
+
         const response = await apiFetch<CheckInValidacao>('/check-in/validar', {
           method: 'POST',
-          body: JSON.stringify({
-            codigo: codigo.trim().toUpperCase(),
-            eventoId,
-          }),
+          body: JSON.stringify(body),
         })
 
         setResultado(response)
@@ -108,10 +130,11 @@ export default function CheckInPage() {
         setIsValidando(false)
       }
     },
-    [eventoId],
+    [eventoId, eventos, diaEvento, pontoCheckinId],
   )
 
   const eventoSelecionado = eventos.find((evento) => evento.id === eventoId)
+  const isBatePonto = eventoSelecionado?.modoCheckin === 'BATE_PONTO'
 
   if (!podeCheckin) {
     return (
@@ -161,6 +184,48 @@ export default function CheckInPage() {
               <div className="flex items-center justify-between text-xs text-zinc-500">
                 <span>{formatEventDate(eventoSelecionado.dataInicio)}</span>
                 <span>{eventoSelecionado.checkinsRealizados} check-ins</span>
+              </div>
+            ) : null}
+
+            {isBatePonto && eventoSelecionado ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="dia-checkin">Dia</Label>
+                  <select
+                    id="dia-checkin"
+                    value={diaEvento}
+                    onChange={(event) => {
+                      setDiaEvento(Number(event.target.value))
+                      setResultado(null)
+                    }}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50"
+                  >
+                    {Array.from({ length: eventoSelecionado.checkinDias }, (_, i) => (
+                      <option key={i + 1} value={i + 1} className="bg-zinc-900">
+                        Dia {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="ponto-checkin">Bip</Label>
+                  <select
+                    id="ponto-checkin"
+                    value={pontoCheckinId}
+                    onChange={(event) => {
+                      setPontoCheckinId(event.target.value)
+                      setResultado(null)
+                    }}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50"
+                  >
+                    {eventoSelecionado.pontosCheckin.map((ponto) => (
+                      <option key={ponto.id} value={ponto.id} className="bg-zinc-900">
+                        {ponto.ordem}. {ponto.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ) : null}
           </div>

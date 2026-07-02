@@ -65,6 +65,8 @@ export function CheckoutPixModal({
   const total = preco * quantidade
   const isPagamentoReal =
     checkout?.gateway === 'inter-pix' || checkout?.gateway === 'inter-boleto'
+  const isModoSimulacao =
+    checkout?.gateway === 'mock-pix' || checkout?.gateway === 'mock-boleto'
   const isBoleto = checkout?.metodo === 'BOLETO' || metodoPagamento === 'BOLETO'
 
   useEffect(() => {
@@ -283,6 +285,13 @@ export function CheckoutPixModal({
         {error ? (
           <p className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
+          </p>
+        ) : null}
+
+        {isModoSimulacao && step === 'pagamento' ? (
+          <p className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            Modo simulação — pagamento mockado para testes locais. Confirme o
+            pagamento para gerar os QR Codes dos ingressos.
           </p>
         ) : null}
 

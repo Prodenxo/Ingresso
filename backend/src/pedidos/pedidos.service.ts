@@ -170,7 +170,9 @@ export class PedidosService {
     })
 
     const interConfigurado = isInterGatewayConfigured(gatewayConfig)
-    const usarInterPixReal = !isMockPixEnabled() && interConfigurado
+    const interPixPronto =
+      interConfigurado && Boolean(gatewayConfig?.chavePix?.trim())
+    const usarInterPixReal = !isMockPixEnabled() && interPixPronto
     const usarInterBoletoReal = !isMockBoletoEnabled() && interConfigurado
 
     if (metodo === 'BOLETO' && !usarInterBoletoReal && !isMockBoletoEnabled()) {

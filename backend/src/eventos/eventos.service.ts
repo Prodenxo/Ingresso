@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import {
+  ModoCheckinEvento,
   Prisma,
   StatusEvento,
   StatusLote,
@@ -14,6 +15,7 @@ import { buildUniqueSlug } from '../common/utils/slug'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateEventoDto } from './dto/create-evento.dto'
 import { CreateLoteDto } from './dto/create-lote.dto'
+import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto'
 import { UpdateEventoDto } from './dto/update-evento.dto'
 import { EventosMediaService } from './eventos-media.service'
 
@@ -33,8 +35,14 @@ const eventoAdminSelect = {
   formato: true,
   imagemUrl: true,
   bannerUrl: true,
+  modoCheckin: true,
+  checkinDias: true,
   createdAt: true,
   updatedAt: true,
+  pontosCheckin: {
+    orderBy: { ordem: 'asc' as const },
+    select: { id: true, ordem: true, nome: true },
+  },
   _count: {
     select: {
       lotes: true,
@@ -141,6 +149,9 @@ export class EventosService {
         lotes: {
           orderBy: { vendaInicio: 'asc' },
         },
+        pontosCheckin: {
+          orderBy: { ordem: 'asc' },
+        },
       },
     })
 
@@ -149,6 +160,55 @@ export class EventosService {
     }
 
     return this.mapEventoAdminDetalhe(evento)
+  }
+
+  async configurarCheckin(
+    eventoId: string,
+    usuarioId: string,
+    dto: ConfigCheckinEventoDto,
+  ) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+
+    const pontos = [...dto.pontos].sort((a, b) => a.ordem - b.ordem)
+
+    if (dto.batePonto) {
+      if (pontos.length === 0) {
+        throw new BadRequestException('Adicione pelo menos um ponto de check-in')
+      }
+
+      const ordens = new Set(pontos.map((p) => p.ordem))
+      if (ordens.size !== pontos.length) {
+        throw new BadRequestException('Ordens dos pontos devem ser únicas')
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.evento.update({
+        where: { id: eventoId },
+        data: {
+          modoCheckin: dto.batePonto
+            ? ModoCheckinEvento.BATE_PONTO
+            : ModoCheckinEvento.PORTA_UNICA,
+          checkinDias: dto.batePonto ? dto.dias : 1,
+        },
+      })
+
+      await tx.eventoPontoCheckin.deleteMany({ where: { eventoId } })
+
+      if (dto.batePonto) {
+        await tx.eventoPontoCheckin.createMany({
+          data: pontos.map((ponto) => ({
+            empresaId,
+            eventoId,
+            ordem: ponto.ordem,
+            nome: ponto.nome.trim(),
+          })),
+        })
+      }
+    })
+
+    return this.findOneAdmin(eventoId, usuarioId)
   }
 
   async create(usuarioId: string, dto: CreateEventoDto) {

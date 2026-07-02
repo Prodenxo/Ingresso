@@ -89,6 +89,11 @@ enum TipoNotificacao {
   LEMBRETE
 }
 
+enum ModoCheckinEvento {
+  PORTA_UNICA
+  BATE_PONTO
+}
+
 enum StatusCurso {
   RASCUNHO
   PUBLICADO
@@ -231,6 +236,8 @@ model Evento {
   status      StatusEvento       @default(RASCUNHO)
   visibilidade VisibilidadeEvento @default(PUBLICO)
   formato     FormatoEvento      @default(PRESENCIAL)
+  modoCheckin ModoCheckinEvento  @default(PORTA_UNICA) @map("modo_checkin")
+  checkinDias Int                @default(1) @map("checkin_dias")
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
 
@@ -239,6 +246,7 @@ model Evento {
   lotes       Lote[]
   pedidos     Pedido[]
   ingressos   Ingresso[]
+  pontosCheckin EventoPontoCheckin[]
 
   @@unique([empresaId, slug])
   @@index([empresaId])
@@ -370,21 +378,42 @@ model Ingresso {
 }
 
 model Checkin {
-  id          String   @id @default(uuid())
-  empresaId   String   @map("empresa_id")
-  ingressoId  String   @map("ingresso_id")
-  operadorId  String   @map("operador_id")
-  local       String?
-  valido      Boolean
-  motivo      String?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  empresaId      String   @map("empresa_id")
+  ingressoId     String   @map("ingresso_id")
+  operadorId     String   @map("operador_id")
+  pontoCheckinId String?  @map("ponto_checkin_id")
+  diaEvento      Int?     @map("dia_evento")
+  local          String?
+  valido         Boolean
+  motivo         String?
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  ingresso    Ingresso @relation(fields: [ingressoId], references: [id], onDelete: Cascade)
-  operador    Usuario  @relation(fields: [operadorId], references: [id], onDelete: Restrict)
+  ingresso       Ingresso @relation(fields: [ingressoId], references: [id], onDelete: Cascade)
+  operador       Usuario  @relation(fields: [operadorId], references: [id], onDelete: Restrict)
+  pontoCheckin   EventoPontoCheckin? @relation(fields: [pontoCheckinId], references: [id], onDelete: SetNull)
 
   @@index([empresaId])
   @@index([ingressoId])
+  @@index([pontoCheckinId])
   @@map("checkins")
+}
+
+model EventoPontoCheckin {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  eventoId  String   @map("evento_id")
+  ordem     Int
+  nome      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  evento    Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  checkins  Checkin[]
+
+  @@unique([eventoId, ordem])
+  @@index([empresaId])
+  @@index([eventoId])
+  @@map("eventos_pontos_checkin")
 }
 
 model Webhook {

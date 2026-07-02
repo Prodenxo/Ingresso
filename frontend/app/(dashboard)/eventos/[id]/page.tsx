@@ -4,6 +4,8 @@ import { Button, Card, Chip } from '@heroui/react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { EventoFlyerUpload } from '@/components/eventos/evento-flyer-upload'
+import { EventoCheckinConfig } from '@/components/eventos/evento-checkin-config'
+import { CheckInRelatorioPanel } from '@/components/check-in/check-in-relatorio-panel'
 import { LotePrecoPromo } from '@/components/ingressos/lote-preco-promo'
 import { AdminShell } from '@/components/layout/admin-shell'
 import { FormField } from '@/components/ui/form-field'
@@ -398,6 +400,16 @@ export default function EventoDetalhePage() {
               </form>
             </Card.Content>
           </Card>
+        ) : null}
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <EventoCheckinConfig
+          evento={evento}
+          onUpdated={(atualizado) => setEvento(atualizado)}
+        />
+        {evento.modoCheckin === 'BATE_PONTO' ? (
+          <CheckInRelatorioPanel eventoId={evento.id} />
         ) : null}
       </div>
     </AdminShell>

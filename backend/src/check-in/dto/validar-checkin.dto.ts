@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator'
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from 'class-validator'
 
 export class ValidarCheckinDto {
   @IsString()
@@ -7,4 +7,13 @@ export class ValidarCheckinDto {
 
   @IsUUID()
   eventoId!: string
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  diaEvento?: number
+
+  @IsOptional()
+  @IsUUID()
+  pontoCheckinId?: string
 }

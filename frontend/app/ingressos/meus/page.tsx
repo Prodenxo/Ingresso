@@ -42,6 +42,7 @@ export default function MeusIngressosPage() {
 
         if (
           detectarTransicao &&
+          ingresso.evento.modoCheckin !== 'BATE_PONTO' &&
           statusAnterior === 'VALIDO' &&
           ingresso.status === 'UTILIZADO' &&
           !celebracaoMostradaRef.current.has(ingresso.id)
@@ -173,7 +174,8 @@ export default function MeusIngressosPage() {
                 </Chip>
               </Card.Header>
 
-              {ingresso.status === 'UTILIZADO' ? (
+              {ingresso.status === 'UTILIZADO' &&
+              ingresso.evento.modoCheckin !== 'BATE_PONTO' ? (
                 <div className="mx-4 mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-6 text-center md:mx-5">
                   <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-200">
                     <PartyPopper className="size-5" aria-hidden />
@@ -183,14 +185,38 @@ export default function MeusIngressosPage() {
                     Tenha um ótimo evento — aproveite cada momento!
                   </p>
                 </div>
-              ) : ingresso.qrCodeUrl ? (
+              ) : ingresso.qrCodeVisivel && ingresso.qrCodeUrl ? (
                 <div className="border-y border-indigo-500/20 bg-indigo-500/5 px-4 py-6 text-center md:px-5">
                   <IngressoQrCodeResponsive codigo={ingresso.qrCodeUrl} />
                   <p className="mt-4 text-xs uppercase tracking-wide text-indigo-300/80">
-                    Apresente na entrada
+                    {ingresso.evento.modoCheckin === 'BATE_PONTO'
+                      ? 'Apresente em cada bip'
+                      : 'Apresente na entrada'}
                   </p>
                   <p className="mt-2 font-mono text-sm text-indigo-100">
                     {ingresso.qrCodeUrl}
+                  </p>
+
+                  {ingresso.evento.modoCheckin === 'BATE_PONTO' &&
+                  ingresso.checkins &&
+                  ingresso.checkins.length > 0 ? (
+                    <ul className="mx-auto mt-4 max-w-sm space-y-1 text-left text-xs text-zinc-400">
+                      {ingresso.checkins.map((registro, index) => (
+                        <li key={`${registro.diaEvento}-${registro.pontoOrdem}-${index}`}>
+                          ✓ Dia {registro.diaEvento} · {registro.pontoNome} —{' '}
+                          {new Intl.DateTimeFormat('pt-BR', {
+                            timeStyle: 'short',
+                          }).format(new Date(registro.realizadoEm))}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : ingresso.status === 'UTILIZADO' ? (
+                <div className="mx-4 mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-6 text-center md:mx-5">
+                  <p className="font-medium text-emerald-100">Presença completa!</p>
+                  <p className="mt-2 text-sm text-emerald-100/80">
+                    Todos os bips foram registrados.
                   </p>
                 </div>
               ) : null}

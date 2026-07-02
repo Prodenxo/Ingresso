@@ -14,12 +14,21 @@ export interface EventoAdmin {
   formato: string
   imagemUrl: string | null
   bannerUrl: string | null
+  modoCheckin: 'PORTA_UNICA' | 'BATE_PONTO'
+  checkinDias: number
+  pontosCheckin?: PontoCheckinEvento[]
   createdAt: string
   updatedAt: string
   _count: {
     lotes: number
     pedidos: number
   }
+}
+
+export interface PontoCheckinEvento {
+  id: string
+  ordem: number
+  nome: string
 }
 
 export interface LoteAdmin {

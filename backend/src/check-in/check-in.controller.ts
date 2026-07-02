@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import type { AuthenticatedUser } from '../auth/types/jwt-payload.type'
@@ -22,5 +22,14 @@ export class CheckInController {
     @Body() dto: ValidarCheckinDto,
   ) {
     return this.checkInService.validar(user.id, dto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('relatorio/:eventoId')
+  obterRelatorio(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('eventoId') eventoId: string,
+  ) {
+    return this.checkInService.obterRelatorio(user.id, eventoId)
   }
 }
