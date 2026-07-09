@@ -143,6 +143,45 @@ export class EmpresaAccessService {
     return empresaId
   }
 
+  async assertRelatorioAccess(usuarioId: string): Promise<string> {
+    const empresaId = await this.resolveEmpresaId(usuarioId)
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { tipoConta: true },
+    })
+
+    if (usuario?.tipoConta === TipoConta.SUPERADMIN) {
+      return empresaId
+    }
+
+    const vinculo = await this.prisma.usuarioEmpresa.findFirst({
+      where: { usuarioId, empresaId },
+      select: { papel: true },
+    })
+
+    const papeisPermitidos = [
+      'ADMINISTRADOR',
+      'FINANCEIRO',
+      'OPERADOR',
+      'CHECKIN',
+      'LEITOR',
+    ] as const
+
+    if (
+      !vinculo ||
+      !papeisPermitidos.includes(
+        vinculo.papel as (typeof papeisPermitidos)[number],
+      )
+    ) {
+      throw new ForbiddenException(
+        'Você não tem permissão para visualizar relatórios',
+      )
+    }
+
+    return empresaId
+  }
+
   async assertAdministradorEmpresa(usuarioId: string): Promise<string> {
     const empresaId = await this.resolveEmpresaId(usuarioId)
     const vinculo = await this.prisma.usuarioEmpresa.findFirst({

@@ -183,7 +183,7 @@ export class CheckInService {
   }
 
   async obterRelatorio(usuarioId: string, eventoId: string) {
-    const empresaId = await this.empresaAccess.assertCheckinAccess(usuarioId)
+    const empresaId = await this.empresaAccess.assertRelatorioAccess(usuarioId)
 
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
@@ -247,6 +247,10 @@ export class CheckInService {
           pontoNome: c.pontoCheckin!.nome,
           realizadoEm: c.createdAt.toISOString(),
         }))
+        .sort((a, b) => {
+          if (a.diaEvento !== b.diaEvento) return a.diaEvento - b.diaEvento
+          return a.pontoOrdem - b.pontoOrdem
+        })
 
       const diasPresentes = new Set(registros.map((r) => r.diaEvento))
       const temDia1 = diasPresentes.has(1)

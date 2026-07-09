@@ -30,6 +30,26 @@ export class EventosMediaService implements OnModuleInit {
     return `/api/uploads/eventos/${filename}`
   }
 
+  resolvePublicUrl(publicUrl: string | null | undefined): string | null {
+    if (!publicUrl?.startsWith('/api/uploads/eventos/')) {
+      return null
+    }
+
+    const filename = publicUrl.split('/').pop()
+
+    if (!filename) {
+      return null
+    }
+
+    const filePath = join(UPLOADS_DIR, filename)
+
+    if (!existsSync(filePath)) {
+      return null
+    }
+
+    return publicUrl
+  }
+
   async saveFlyer(
     file: Express.Multer.File,
     previousUrl?: string | null,

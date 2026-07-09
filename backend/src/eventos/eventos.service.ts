@@ -133,11 +133,13 @@ export class EventosService {
   async findAllAdmin(usuarioId: string) {
     const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
 
-    return this.prisma.evento.findMany({
+    const eventos = await this.prisma.evento.findMany({
       where: { empresaId },
       select: eventoAdminSelect,
       orderBy: { dataInicio: 'desc' },
     })
+
+    return eventos.map((evento) => this.sanitizeEventoMedia(evento))
   }
 
   async findOneAdmin(eventoId: string, usuarioId: string) {
@@ -159,7 +161,7 @@ export class EventosService {
       throw new NotFoundException('Evento não encontrado')
     }
 
-    return this.mapEventoAdminDetalhe(evento)
+    return this.sanitizeEventoMedia(this.mapEventoAdminDetalhe(evento))
   }
 
   async configurarCheckin(
@@ -464,11 +466,21 @@ export class EventosService {
       cidade: evento.cidade,
       estado: evento.estado,
       endereco: evento.endereco,
-      imagemUrl: evento.imagemUrl,
-      bannerUrl: evento.bannerUrl,
+      imagemUrl: this.mediaService.resolvePublicUrl(evento.imagemUrl),
+      bannerUrl: this.mediaService.resolvePublicUrl(evento.bannerUrl),
       formato: evento.formato,
       empresa: evento.empresa,
       lotes,
+    }
+  }
+
+  private sanitizeEventoMedia<
+    T extends { imagemUrl: string | null; bannerUrl: string | null },
+  >(evento: T): T {
+    return {
+      ...evento,
+      imagemUrl: this.mediaService.resolvePublicUrl(evento.imagemUrl),
+      bannerUrl: this.mediaService.resolvePublicUrl(evento.bannerUrl),
     }
   }
 
