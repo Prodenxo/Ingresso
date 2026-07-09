@@ -24,12 +24,17 @@ async function bootstrap() {
     }),
   )
 
+  const normalizeOrigin = (origin: string): string =>
+    origin.trim().replace(/\/$/, '')
+
   const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://127.0.0.1:3000')
     .split(',')
-    .map((origin) => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean)
 
-  const frontendUrl = process.env.FRONTEND_URL?.trim()
+  const frontendUrl = process.env.FRONTEND_URL
+    ? normalizeOrigin(process.env.FRONTEND_URL)
+    : undefined
 
   if (frontendUrl && !corsOrigins.includes(frontendUrl)) {
     corsOrigins.push(frontendUrl)
