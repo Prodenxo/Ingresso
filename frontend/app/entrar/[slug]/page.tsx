@@ -14,7 +14,7 @@ export default function EntrarEmpresaPage() {
   const params = useParams<{ slug: string }>()
   const slug = params.slug
   const router = useRouter()
-  const { user, isLoading: authLoading, refreshUser } = useAuth()
+  const { user, isLoading: authLoading, refreshUser, logout } = useAuth()
   const [empresa, setEmpresa] = useState<ConviteEmpresaPublico | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isFetching, setIsFetching] = useState(true)
@@ -66,8 +66,30 @@ export default function EntrarEmpresaPage() {
     }
   }
 
+  function handleSairParaParticipante(destino: 'login' | 'register') {
+    logout()
+    router.push(destino === 'login' ? loginHref : registerHref)
+  }
+
   const loginHref = `/login?redirect=${encodeURIComponent(`/entrar/${slug}`)}`
   const registerHref = `/register?redirect=${encodeURIComponent(`/entrar/${slug}`)}`
+
+  const guestActions = (
+    <div className="flex flex-col gap-3">
+      <Link
+        href={loginHref}
+        className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-500"
+      >
+        Entrar na minha conta
+      </Link>
+      <Link
+        href={registerHref}
+        className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+      >
+        Criar conta
+      </Link>
+    </div>
+  )
 
   return (
     <div className="mesh-bg flex min-h-screen items-center justify-center p-4">
@@ -126,24 +148,40 @@ export default function EntrarEmpresaPage() {
               </p>
             ) : null}
 
-            {!user ? (
-              <div className="flex flex-col gap-3">
-                <Link href={loginHref} className="block">
-                  <Button variant="primary" className="w-full">
-                    Entrar na minha conta
-                  </Button>
-                </Link>
-                <Link href={registerHref} className="block">
-                  <Button variant="ghost" className="w-full">
-                    Criar conta
-                  </Button>
+            {authLoading ? (
+              <div className="flex items-center justify-center gap-2 py-2 text-sm text-zinc-400">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Verificando sessão...
+              </div>
+            ) : !user ? (
+              guestActions
+            ) : isPainelAdmin(user) ? (
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-400">
+                  Você está logado como organizador. Saia desta conta para entrar
+                  como membro participante.
+                </p>
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-500"
+                  onClick={() => handleSairParaParticipante('register')}
+                >
+                  Sair e criar conta de participante
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                  onClick={() => handleSairParaParticipante('login')}
+                >
+                  Sair e entrar com outra conta
+                </button>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 px-6 py-3 text-sm text-zinc-300 transition hover:bg-white/5"
+                >
+                  Ir para o painel admin
                 </Link>
               </div>
-            ) : isPainelAdmin(user) ? (
-              <p className="text-sm text-zinc-400">
-                Contas de organizador usam o painel admin. Acesse com uma conta
-                de participante para entrar como membro.
-              </p>
             ) : isVinculando ? (
               <div className="flex items-center justify-center gap-2 text-sm text-zinc-400">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
