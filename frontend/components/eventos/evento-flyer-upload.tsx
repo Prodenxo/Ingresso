@@ -101,7 +101,7 @@ export function EventoFlyerUpload({
       <Card.Header>
         <Card.Title className="text-white">Capa do evento</Card.Title>
         <Card.Description>
-          Poster vertical na vitrine (proporção 3:4, JPG/PNG/WebP/GIF — máx.{' '}
+          Poster vertical na vitrine (proporção 3:4, JPG/PNG/WebP/GIF, máx.{' '}
           {getFlyerMaxMbLabel()})
         </Card.Description>
       </Card.Header>
@@ -142,7 +142,7 @@ export function EventoFlyerUpload({
                   {eventoNome}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Arte pequena à esquerda, detalhes à direita — como na listagem
+                  Arte pequena à esquerda, detalhes à direita, como na listagem
                   de ingressos.
                 </p>
               </div>

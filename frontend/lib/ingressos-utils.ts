@@ -103,5 +103,5 @@ export function buildCheckoutLoteLabel(
     return eventoNome
   }
 
-  return `${eventoNome} — ${nomeVitrine}`
+  return `${eventoNome}: ${nomeVitrine}`
 }

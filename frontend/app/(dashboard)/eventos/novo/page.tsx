@@ -67,7 +67,7 @@ export default function NovoEventoPage() {
           name="nome"
           value={form.nome}
           onChange={(e) => updateField('nome', e.target.value)}
-          placeholder="Ex.: Workshop Presencial — Liderança 2026"
+          placeholder="Ex.: Workshop Presencial, Liderança 2026"
           required
         />
 

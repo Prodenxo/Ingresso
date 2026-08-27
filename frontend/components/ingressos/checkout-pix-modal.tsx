@@ -319,7 +319,7 @@ export function CheckoutPixModal({
 
         {isModoSimulacao && step === 'pagamento' ? (
           <p className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-            Modo simulação — pagamento mockado para testes locais. Confirme o
+            Modo simulação: pagamento mockado para testes locais. Confirme o
             pagamento para gerar os QR Codes dos ingressos.
           </p>
         ) : null}
@@ -347,7 +347,7 @@ export function CheckoutPixModal({
 
             <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wide text-indigo-300/80">
-                Ingresso 1 — Seu ingresso
+                Ingresso 1: Seu ingresso
               </p>
               <div className="mt-2 flex items-center gap-2 text-sm text-white">
                 <User className="size-4 text-indigo-300" aria-hidden />
@@ -502,7 +502,7 @@ export function CheckoutPixModal({
                 <p className="text-sm text-zinc-400">
                   {checkout.gateway === 'infinitypay'
                     ? 'Você será redirecionado ao checkout InfinitePay. Após pagar, volte para ver seus ingressos.'
-                    : 'Simulação InfinitePay — confirme o pagamento para gerar seus ingressos.'}
+                    : 'Simulação InfinitePay: confirme o pagamento para gerar seus ingressos.'}
                 </p>
                 {checkout.checkoutUrl ? (
                   <Button
@@ -534,7 +534,7 @@ export function CheckoutPixModal({
                 <p className="text-sm text-zinc-400">
                   {isPagamentoReal
                     ? 'Seu boleto foi emitido. Abra o PDF, pague até o vencimento e aguarde a compensação para liberar os ingressos.'
-                    : 'Simulação de boleto — confirme o pagamento para gerar seus ingressos.'}
+                    : 'Simulação de boleto: confirme o pagamento para gerar seus ingressos.'}
                 </p>
                 {checkout.dataVencimento ? (
                   <p className="text-xs text-zinc-500">
@@ -582,7 +582,7 @@ export function CheckoutPixModal({
                 <p className="text-sm text-zinc-400">
                   {checkout.gateway === 'inter-pix'
                     ? 'Pague com Pix no app do seu banco. Seus ingressos serão liberados automaticamente após a confirmação.'
-                    : 'Simulação PIX — copie o código ou confirme o pagamento para gerar seus ingressos.'}
+                    : 'Simulação PIX: copie o código ou confirme o pagamento para gerar seus ingressos.'}
                 </p>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <p className="break-all font-mono text-xs text-zinc-300">

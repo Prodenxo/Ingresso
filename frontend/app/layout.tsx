@@ -15,8 +15,12 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Onith Eventos — Gestão de Eventos',
+  title: 'Onith Eventos | Gestão de Eventos',
   description: 'Plataforma Onith Eventos para gestão de eventos e venda de ingressos',
+  icons: {
+    icon: '/brand-logo.png',
+    apple: '/brand-logo.png',
+  },
 }
 
 function resolveRuntimeApiUrl(): string {

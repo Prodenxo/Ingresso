@@ -204,7 +204,7 @@ function LoteFormFields({
       />
 
       <FormField
-        label="Valor unitário — Por (R$)"
+        label="Valor unitário, Por (R$)"
         name="lote-preco"
         type="number"
         min="0"
@@ -232,7 +232,7 @@ function LoteFormFields({
           isDisabled={priceLocked}
         />
         <FormField
-          label="Preço âncora — De (R$)"
+          label="Preço âncora, De (R$)"
           name="lote-preco-de"
           type="number"
           min="0"
@@ -250,7 +250,7 @@ function LoteFormFields({
         </p>
       ) : (
         <p className="text-xs text-zinc-500">
-          Informe o desconto em % ou o preço âncora manualmente — os dois campos
+          Informe o desconto em % ou o preço âncora manualmente. Os dois campos
           se atualizam juntos. Ex.: R$ 300 com 70% off → De R$ 1.000,00 por R$
           300,00 na vitrine.
         </p>
@@ -339,8 +339,8 @@ function LoteFormFields({
             }
             className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-400/50"
           >
-            <option value="ATIVO">Ativo — visível na vitrine</option>
-            <option value="INATIVO">Inativo — oculto na vitrine</option>
+            <option value="ATIVO">Ativo, visível na vitrine</option>
+            <option value="INATIVO">Inativo, oculto na vitrine</option>
           </select>
         </div>
       ) : null}

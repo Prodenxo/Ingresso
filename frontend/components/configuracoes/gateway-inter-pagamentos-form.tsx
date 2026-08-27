@@ -325,7 +325,7 @@ export function GatewayInterPagamentosForm({
             <li>{resumo.temClientSecret ? '✓ Secret' : '✗ Secret'}</li>
             <li>{resumo.temCertificado ? '✓ Certificado' : '✗ Certificado'}</li>
             <li>{resumo.temChavePrivada ? '✓ Chave privada' : '✗ Chave privada'}</li>
-            <li>{resumo.temWebhookSecret ? '✓ Webhook secret' : '— Webhook'}</li>
+            <li>{resumo.temWebhookSecret ? '✓ Webhook secret' : 'Sem webhook'}</li>
           </ul>
         </Card>
       ) : null}
@@ -385,7 +385,7 @@ export function GatewayInterPagamentosForm({
           onChange={(event) => updateField('clientId', event.target.value)}
           placeholder={
             resumo?.configurado
-              ? `Atual: ${resumo.clientIdMascarado ?? '—'}`
+              ? `Atual: ${resumo.clientIdMascarado ?? 'não informado'}`
               : 'Cole o Client ID do portal Inter'
           }
           required={precisaClientId}
@@ -422,7 +422,7 @@ export function GatewayInterPagamentosForm({
           selectedFileName={certificadoFileName}
           savedHint={
             resumo?.temCertificado
-              ? 'Certificado já salvo — escolha um arquivo para substituir'
+              ? 'Certificado já salvo. Escolha um arquivo para substituir'
               : 'Nenhum arquivo selecionado'
           }
           onLoaded={(content, fileName) => {
@@ -445,7 +445,7 @@ export function GatewayInterPagamentosForm({
           selectedFileName={chavePrivadaFileName}
           savedHint={
             resumo?.temChavePrivada
-              ? 'Chave já salva — escolha um arquivo para substituir'
+              ? 'Chave já salva. Escolha um arquivo para substituir'
               : 'Nenhum arquivo selecionado'
           }
           onLoaded={(content, fileName) => {

@@ -3,8 +3,8 @@
 import { Avatar, Button } from '@heroui/react'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
+import { BrandNavbar } from '@/components/brand/brand-logo'
 import { getEmpresasVinculadasLabel } from '@/lib/participant-nav-items'
-import { BRAND_NAME } from '@/lib/brand'
 
 interface ParticipantNavbarProps {
   title: string
@@ -27,9 +27,9 @@ export function ParticipantNavbar({ title, subtitle }: ParticipantNavbarProps) {
     <header className="glass-panel rounded-2xl px-4 py-3 md:px-5 md:py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-500 md:hidden">
-            {BRAND_NAME}
-          </p>
+          <div className="mb-1 md:hidden">
+            <BrandNavbar />
+          </div>
           <h2 className="truncate text-base font-semibold text-white md:text-lg">
             {title}
           </h2>

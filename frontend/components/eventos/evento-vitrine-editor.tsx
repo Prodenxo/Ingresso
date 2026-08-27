@@ -99,7 +99,7 @@ export function EventoVitrineEditor({
             name="evento-nome-vitrine"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex.: Workshop Presencial — Liderança 2026"
+            placeholder="Ex.: Workshop Presencial, Liderança 2026"
             required
             maxLength={120}
           />
@@ -126,7 +126,7 @@ export function EventoVitrineEditor({
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
             />
             <p className="text-xs text-zinc-500">
-              {descricao.trim().length}/600 · Recomendado: 2–4 frases objetivas
+              {descricao.trim().length}/600 · Recomendado: 2 a 4 frases objetivas
             </p>
           </div>
 

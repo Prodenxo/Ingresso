@@ -109,7 +109,7 @@ export function CheckInResultCard({ result }: CheckInResultCardProps) {
           </p>
           {result.ingresso ? (
             <p className="mt-2 text-sm text-red-100/70">
-              {result.ingresso.participanteNome} — {result.ingresso.eventoNome}
+              {result.ingresso.participanteNome} · {result.ingresso.eventoNome}
             </p>
           ) : null}
         </div>

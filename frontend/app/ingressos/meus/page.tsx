@@ -193,7 +193,7 @@ export default function MeusIngressosPage() {
                   <p className="mt-2 text-sm text-emerald-100/80">
                     {isBatePonto
                       ? 'Sua presença foi registrada em todos os dias do evento.'
-                      : 'Tenha um ótimo evento — aproveite cada momento!'}
+                      : 'Tenha um ótimo evento. Aproveite cada momento!'}
                   </p>
                 </div>
               ) : ingresso.qrCodeVisivel && ingresso.qrCodeUrl ? (

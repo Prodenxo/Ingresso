@@ -170,7 +170,7 @@ export default function DashboardPage() {
             <div>
               <Card.Title className="text-white">Atividade recente</Card.Title>
               <Card.Description>
-                Últimos pedidos — detalhes financeiros em Financeiro
+                Últimos pedidos. Detalhes financeiros em Financeiro
               </Card.Description>
             </div>
             <Link
@@ -219,7 +219,7 @@ export default function DashboardPage() {
           <Card.Header className="px-5 pt-5">
             <Card.Title className="text-white">Ações rápidas</Card.Title>
             <Card.Description>
-              Operacional — receita e extrato em Financeiro
+              Operacional. Receita e extrato em Financeiro
             </Card.Description>
           </Card.Header>
           <Card.Content className="space-y-3 px-5 pb-5">

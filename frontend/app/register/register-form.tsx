@@ -9,7 +9,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { getHomeRoute } from '@/lib/auth-roles'
-import { BRAND_NAME } from '@/lib/brand'
+import { BrandAuthHeader } from '@/components/brand/brand-logo'
 import type { RegisterTipo } from '@/types/auth'
 
 const accountTypes: Array<{
@@ -98,10 +98,8 @@ export function RegisterForm() {
     <main className="mesh-bg flex min-h-screen items-center justify-center p-4 pb-8">
       <div className="glass-panel w-full max-w-xl rounded-2xl p-6 sm:p-8">
         <div className="mb-8 text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-indigo-400">
-            {BRAND_NAME}
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">
+          <BrandAuthHeader />
+          <h1 className="mt-4 text-2xl font-semibold text-white">
             Criar conta
           </h1>
           <p className="mt-2 text-sm text-zinc-400">

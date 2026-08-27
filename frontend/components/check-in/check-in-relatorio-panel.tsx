@@ -197,7 +197,7 @@ export function CheckInRelatorioPanel({ eventoId }: CheckInRelatorioPanelProps) 
                   const registro = participante.registros.find(
                     (r) => r.diaEvento === dia && r.pontoId === pontoId,
                   )
-                  return registro ? formatDateTime(registro.realizadoEm) : '—'
+                  return registro ? formatDateTime(registro.realizadoEm) : 'Sem registro'
                 }
 
                 return (
