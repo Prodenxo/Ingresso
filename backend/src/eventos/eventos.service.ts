@@ -17,6 +17,7 @@ import { resolverFormasPagamento } from '../payments/gateway-resolver'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateEventoDto } from './dto/create-evento.dto'
 import { CreateLoteDto } from './dto/create-lote.dto'
+import { UpdateLoteDto } from './dto/update-lote.dto'
 import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto'
 import { UpdateEventoDto } from './dto/update-evento.dto'
 import { EventosMediaService } from './eventos-media.service'
@@ -371,6 +372,117 @@ export class EventosService {
         status: StatusLote.ATIVO,
       },
     })
+  }
+
+  async updateLote(
+    eventoId: string,
+    loteId: string,
+    usuarioId: string,
+    dto: UpdateLoteDto,
+  ) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+
+    const lote = await this.prisma.lote.findFirst({
+      where: { id: loteId, eventoId, empresaId },
+    })
+
+    if (!lote) {
+      throw new NotFoundException('Lote não encontrado')
+    }
+
+    const vendaInicio = dto.vendaInicio
+      ? new Date(dto.vendaInicio)
+      : lote.vendaInicio
+    const vendaFim = dto.vendaFim ? new Date(dto.vendaFim) : lote.vendaFim
+
+    if (vendaFim <= vendaInicio) {
+      throw new BadRequestException(
+        'A data final de venda deve ser posterior à inicial',
+      )
+    }
+
+    const nextPreco = dto.preco ?? Number(lote.preco)
+    const nextPrecoDe =
+      dto.precoDe === null
+        ? null
+        : dto.precoDe !== undefined
+          ? dto.precoDe
+          : lote.precoDe
+            ? Number(lote.precoDe)
+            : null
+
+    if (nextPrecoDe !== null && nextPrecoDe <= nextPreco) {
+      throw new BadRequestException(
+        'O preço âncora deve ser maior que o valor unitário de venda',
+      )
+    }
+
+    if (
+      lote.quantidadeVendida > 0 &&
+      (dto.preco !== undefined ||
+        dto.precoDe !== undefined ||
+        (dto.quantidade !== undefined && dto.quantidade < lote.quantidade))
+    ) {
+      if (dto.preco !== undefined && dto.preco !== Number(lote.preco)) {
+        throw new BadRequestException(
+          'Não é possível alterar o preço de lote com vendas registradas',
+        )
+      }
+
+      if (
+        dto.precoDe !== undefined &&
+        (dto.precoDe === null
+          ? lote.precoDe !== null
+          : dto.precoDe !== Number(lote.precoDe))
+      ) {
+        throw new BadRequestException(
+          'Não é possível alterar o preço âncora de lote com vendas registradas',
+        )
+      }
+    }
+
+    if (dto.quantidade !== undefined) {
+      if (dto.quantidade < lote.quantidadeVendida) {
+        throw new BadRequestException(
+          `A quantidade não pode ser menor que ${lote.quantidadeVendida} (já vendidos)`,
+        )
+      }
+    }
+
+    const nextStatus = dto.status ?? lote.status
+    if (
+      nextStatus === StatusLote.ESGOTADO &&
+      dto.status !== undefined
+    ) {
+      throw new BadRequestException(
+        'O status esgotado é definido automaticamente pelo sistema',
+      )
+    }
+
+    const updated = await this.prisma.lote.update({
+      where: { id: loteId },
+      data: {
+        ...(dto.nome !== undefined ? { nome: dto.nome.trim() } : {}),
+        ...(dto.preco !== undefined ? { preco: dto.preco } : {}),
+        ...(dto.precoDe !== undefined ? { precoDe: dto.precoDe } : {}),
+        ...(dto.quantidade !== undefined ? { quantidade: dto.quantidade } : {}),
+        ...(dto.vendaInicio !== undefined ? { vendaInicio } : {}),
+        ...(dto.vendaFim !== undefined ? { vendaFim } : {}),
+        ...(dto.limitePorCompra !== undefined
+          ? { limitePorCompra: dto.limitePorCompra }
+          : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
+      },
+    })
+
+    return {
+      ...updated,
+      preco: Number(updated.preco),
+      precoDe: updated.precoDe ? Number(updated.precoDe) : null,
+      taxa: Number(updated.taxa),
+      disponiveis: updated.quantidade - updated.quantidadeVendida,
+    }
   }
 
   async removeLote(eventoId: string, loteId: string, usuarioId: string) {

@@ -9,6 +9,7 @@ import { EventosModule } from './eventos/eventos.module'
 import { HealthModule } from './health/health.module'
 import { IngressosModule } from './ingressos/ingressos.module'
 import { CursosModule } from './cursos/cursos.module'
+import { LinksIndicacaoModule } from './links-indicacao/links-indicacao.module'
 import { MembrosModule } from './membros/membros.module'
 import { PedidosModule } from './pedidos/pedidos.module'
 import { PrismaModule } from './prisma/prisma.module'
@@ -28,6 +29,7 @@ import { WebhooksModule } from './webhooks/webhooks.module'
     IngressosModule,
     PedidosModule,
     MembrosModule,
+    LinksIndicacaoModule,
     CursosModule,
     WebhooksModule,
   ],

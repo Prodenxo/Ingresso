@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { IngressoQrCodeResponsive } from '@/components/check-in/ingresso-qr-code-responsive'
 import { ApiError, apiFetch, apiFetchBlob } from '@/lib/api-client'
+import { getLinkIndicacaoSlug } from '@/lib/link-indicacao-storage'
 import {
   formatCpf,
   formatTelefone,
@@ -194,6 +195,11 @@ export function CheckoutPixModal({
           cpf: p.cpf,
           telefone: p.telefone,
         }))
+      }
+
+      const linkSlug = getLinkIndicacaoSlug()
+      if (linkSlug) {
+        payload.linkIndicacaoSlug = linkSlug
       }
 
       const result = await apiFetch<CheckoutResponse>(

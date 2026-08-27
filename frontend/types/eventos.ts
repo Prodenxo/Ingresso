@@ -101,4 +101,5 @@ export interface CheckoutRequest {
   metodo?: 'PIX' | 'BOLETO' | 'CHECKOUT'
   compradorCpf?: string
   participantesAdicionais?: ParticipanteAdicionalInput[]
+  linkIndicacaoSlug?: string
 }

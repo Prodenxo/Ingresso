@@ -128,6 +128,7 @@ model Empresa {
   pedidos         Pedido[]
   pagamentos      Pagamento[]
   ingressos       Ingresso[]
+  linksIndicacao  LinkIndicacao[]
   webhooks        Webhook[]
   arquivos        Arquivo[]
   notificacoes    Notificacao[]
@@ -247,6 +248,7 @@ model Evento {
   pedidos     Pedido[]
   ingressos   Ingresso[]
   pontosCheckin EventoPontoCheckin[]
+  linksIndicacao LinkIndicacao[]
 
   @@unique([empresaId, slug])
   @@index([empresaId])
@@ -284,6 +286,7 @@ model Pedido {
   id           String       @id @default(uuid())
   empresaId    String       @map("empresa_id")
   eventoId     String       @map("evento_id")
+  linkIndicacaoId String?   @map("link_indicacao_id")
   codigo       String       @unique
   status       StatusPedido @default(PENDENTE)
   total        Decimal      @db.Decimal(10, 2)
@@ -298,13 +301,35 @@ model Pedido {
 
   empresa      Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   evento       Evento       @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  linkIndicacao LinkIndicacao? @relation(fields: [linkIndicacaoId], references: [id], onDelete: SetNull)
   itens        PedidoItem[]
   pagamentos   Pagamento[]
   ingressos    Ingresso[]
 
   @@index([empresaId])
   @@index([eventoId])
+  @@index([linkIndicacaoId])
   @@map("pedidos")
+}
+
+model LinkIndicacao {
+  id        String   @id @default(uuid())
+  empresaId String   @map("empresa_id")
+  eventoId  String   @map("evento_id")
+  nome      String
+  slug      String   @unique
+  ativo     Boolean  @default(true)
+  cliques   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  evento    Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  pedidos   Pedido[]
+
+  @@index([empresaId])
+  @@index([eventoId])
+  @@map("links_indicacao")
 }
 
 model PedidoItem {

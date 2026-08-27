@@ -34,4 +34,8 @@ export class CheckoutDto {
   @ValidateNested({ each: true })
   @Type(() => ParticipanteAdicionalDto)
   participantesAdicionais?: ParticipanteAdicionalDto[]
+
+  @IsOptional()
+  @IsString()
+  linkIndicacaoSlug?: string
 }

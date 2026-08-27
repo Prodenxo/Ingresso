@@ -4,6 +4,7 @@ import { Button, Card, Chip } from '@heroui/react'
 import Link from 'next/link'
 import { ShoppingCart } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CheckoutPixModal } from '@/components/ingressos/checkout-pix-modal'
 import { EventoVitrineCard } from '@/components/ingressos/evento-vitrine-card'
 import { VincularCodigoCard } from '@/components/membros/vincular-codigo-card'
@@ -11,6 +12,7 @@ import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas
 import { ParticipantShell } from '@/components/layout/participant-shell'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
+import { saveLinkIndicacaoSlug } from '@/lib/link-indicacao-storage'
 import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
 import { buildCheckoutLoteLabel } from '@/lib/ingressos-utils'
 import type { EventoDisponivel, FormaPagamentoDisponivel, LoteDisponivel } from '@/types/ingressos'
@@ -25,6 +27,7 @@ interface CheckoutTarget {
 
 export default function IngressosDisponiveisPage() {
   const { isReady, user, refreshUser } = useRequireParticipant()
+  const searchParams = useSearchParams()
   const [disponiveis, setDisponiveis] = useState<EventoDisponivel[]>([])
   const [isFetching, setIsFetching] = useState(true)
   const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget | null>(
@@ -43,6 +46,13 @@ export default function IngressosDisponiveisPage() {
       setIsFetching(false)
     }
   }, [])
+
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref?.trim()) {
+      saveLinkIndicacaoSlug(ref)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (isReady) {

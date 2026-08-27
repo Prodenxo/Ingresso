@@ -33,6 +33,7 @@ import type { AuthenticatedUser } from '../auth/types/jwt-payload.type'
 import { CreateEventoDto } from './dto/create-evento.dto'
 
 import { CreateLoteDto } from './dto/create-lote.dto'
+import { UpdateLoteDto } from './dto/update-lote.dto'
 
 import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto'
 import { UpdateEventoDto } from './dto/update-evento.dto'
@@ -237,6 +238,28 @@ export class EventosController {
   ) {
 
     return this.eventosService.createLote(id, user.id, dto)
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard)
+
+  @Patch(':id/lotes/:loteId')
+
+  updateLote(
+
+    @Param('id') id: string,
+
+    @Param('loteId') loteId: string,
+
+    @CurrentUser() user: AuthenticatedUser,
+
+    @Body() dto: UpdateLoteDto,
+
+  ) {
+
+    return this.eventosService.updateLote(id, loteId, user.id, dto)
 
   }
 

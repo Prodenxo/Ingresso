@@ -63,21 +63,29 @@ export default function NovoEventoPage() {
         onSubmit={handleSubmit}
       >
         <FormField
-          label="Nome do evento"
+          label="Título do evento (vitrine)"
           name="nome"
           value={form.nome}
           onChange={(e) => updateField('nome', e.target.value)}
-          placeholder="Ex.: Festival de Verão 2026"
+          placeholder="Ex.: Workshop Presencial — Liderança 2026"
           required
         />
 
-        <FormField
-          label="Descrição"
-          name="descricao"
-          value={form.descricao}
-          onChange={(e) => updateField('descricao', e.target.value)}
-          placeholder="Descreva o evento (opcional)"
-        />
+        <div className="space-y-2">
+          <label htmlFor="descricao" className="text-sm font-medium text-zinc-200">
+            Descrição de venda
+          </label>
+          <textarea
+            id="descricao"
+            name="descricao"
+            value={form.descricao}
+            onChange={(e) => updateField('descricao', e.target.value)}
+            rows={4}
+            maxLength={600}
+            placeholder="O que a pessoa vai viver, para quem é o evento e por que comprar agora."
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
+          />
+        </div>
 
         <div className="form-row-2">
           <FormField

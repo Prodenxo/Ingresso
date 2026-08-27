@@ -32,6 +32,7 @@ import { INTER_BOLETO_VALOR_MINIMO } from '../payments/providers/inter-boleto.he
 import { InfinityPayProvider } from '../payments/providers/infinitypay.provider'
 import type { InfinityPayWebhookPayload } from '../payments/providers/infinitypay.types'
 import { InterPixProvider } from '../payments/providers/inter-pix.provider'
+import { LinksIndicacaoService } from '../links-indicacao/links-indicacao.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { CheckoutDto } from './dto/checkout.dto'
 import { ParticipanteAdicionalDto } from './dto/participante-adicional.dto'
@@ -65,6 +66,7 @@ export class PedidosService {
     private readonly interBoletoProvider: InterBoletoProvider,
     private readonly infinityPayProvider: InfinityPayProvider,
     private readonly empresaAccess: EmpresaAccessService,
+    private readonly linksIndicacaoService: LinksIndicacaoService,
   ) {}
 
   async checkoutLote(
@@ -122,6 +124,13 @@ export class PedidosService {
 
     const metodo = dto.metodo ?? 'PIX'
 
+    const linkIndicacaoId =
+      await this.linksIndicacaoService.resolverLinkParaCheckout(
+        dto.linkIndicacaoSlug,
+        lote.empresaId,
+        lote.eventoId,
+      )
+
     const gatewayConfig = await this.prisma.empresaGatewayPagamento.findUnique({
       where: { empresaId: lote.empresaId },
     })
@@ -148,6 +157,7 @@ export class PedidosService {
         gatewayConfig,
         precoUnitario: Number(lote.preco),
         subtotal: Number(lote.preco) * dto.quantidade,
+        linkIndicacaoId,
         participantesIngresso: this.montarParticipantesIngresso(
           usuario,
           dto.quantidade,
@@ -218,6 +228,7 @@ export class PedidosService {
       data: {
         empresaId: lote.empresaId,
         eventoId: lote.eventoId,
+        linkIndicacaoId,
         codigo,
         status: StatusPedido.PENDENTE,
         total: subtotal,
@@ -361,6 +372,7 @@ export class PedidosService {
     gatewayConfig: EmpresaGatewayPagamento | null
     precoUnitario: number
     subtotal: number
+    linkIndicacaoId: string | null
     participantesIngresso: ParticipanteIngressoRegistro[]
   }) {
     const {
@@ -370,6 +382,7 @@ export class PedidosService {
       gatewayConfig,
       precoUnitario,
       subtotal,
+      linkIndicacaoId,
       participantesIngresso,
     } = input
 
@@ -383,6 +396,7 @@ export class PedidosService {
       data: {
         empresaId: lote.empresaId,
         eventoId: lote.eventoId,
+        linkIndicacaoId,
         codigo,
         status: StatusPedido.PENDENTE,
         total: subtotal,
