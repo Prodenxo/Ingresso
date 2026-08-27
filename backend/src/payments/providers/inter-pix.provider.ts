@@ -2,7 +2,7 @@ import {
   BadRequestException,
   Injectable,
 } from '@nestjs/common'
-import type { GatewayPagamentoCredenciais } from '../../configuracoes/gateway-pagamento.types'
+import type { InterGatewayCredenciais } from '../../configuracoes/gateway-pagamento.types'
 import type {
   PaymentConnectionResult,
   PaymentProvider,
@@ -41,7 +41,7 @@ export class InterPixProvider implements PaymentProvider {
   private readonly tokenCache = new Map<string, CachedToken>()
 
   async testConnection(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
   ): Promise<PaymentConnectionResult> {
     const validationError = validateInterCredentials(creds)
 
@@ -118,7 +118,7 @@ export class InterPixProvider implements PaymentProvider {
   }
 
   async getChargeStatus(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
     txid: string,
   ): Promise<InterCobResponse> {
     return this.authenticatedRequest<InterCobResponse>(creds, {
@@ -128,7 +128,7 @@ export class InterPixProvider implements PaymentProvider {
   }
 
   async obtainAccessToken(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
   ): Promise<InterOAuthTokenResponse> {
     const cacheKey = `${creds.ambiente}:${creds.clientId}`
     const cached = this.tokenCache.get(cacheKey)
@@ -157,7 +157,7 @@ export class InterPixProvider implements PaymentProvider {
   }
 
   private async authenticatedRequest<T>(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
     options: {
       method: 'GET' | 'PUT' | 'POST' | 'PATCH' | 'DELETE'
       path: string

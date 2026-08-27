@@ -17,10 +17,20 @@ import {
 import { createHash, randomBytes } from 'crypto'
 import { hashPassword } from '../common/crypto/password'
 import { ConfiguracoesPagamentosService } from '../configuracoes/configuracoes-pagamentos.service'
+import { isInfinityPayGatewayCredenciais, isInterGatewayCredenciais } from '../configuracoes/gateway-pagamento.types'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
+import {
+  isInfinityPayConfigured,
+  isInterGatewayConfigured,
+  isMockBoletoEnabled,
+  isMockInfinityPayEnabled,
+  isMockPixEnabled,
+} from '../payments/gateway-resolver'
 import { PaymentProviderFactory } from '../payments/payment-provider.factory'
 import { InterBoletoProvider } from '../payments/providers/inter-boleto.provider'
 import { INTER_BOLETO_VALOR_MINIMO } from '../payments/providers/inter-boleto.helpers'
+import { InfinityPayProvider } from '../payments/providers/infinitypay.provider'
+import type { InfinityPayWebhookPayload } from '../payments/providers/infinitypay.types'
 import { InterPixProvider } from '../payments/providers/inter-pix.provider'
 import { PrismaService } from '../prisma/prisma.service'
 import { CheckoutDto } from './dto/checkout.dto'
@@ -45,29 +55,6 @@ async function hashToken(token: string): Promise<string> {
   return hashPassword(token)
 }
 
-function isMockPixEnabled(): boolean {
-  return process.env.MOCK_PIX === 'true'
-}
-
-function isMockBoletoEnabled(): boolean {
-  return process.env.MOCK_BOLETO === 'true'
-}
-
-function isInterGatewayConfigured(
-  gatewayConfig: EmpresaGatewayPagamento | null,
-): boolean {
-  if (!gatewayConfig || gatewayConfig.provider !== 'inter-pix') {
-    return false
-  }
-
-  return (
-    Boolean(gatewayConfig.clientIdEnc) &&
-    Boolean(gatewayConfig.clientSecretEnc) &&
-    Boolean(gatewayConfig.certificadoEnc) &&
-    Boolean(gatewayConfig.chavePrivadaEnc)
-  )
-}
-
 @Injectable()
 export class PedidosService {
   constructor(
@@ -76,6 +63,7 @@ export class PedidosService {
     private readonly paymentProviderFactory: PaymentProviderFactory,
     private readonly interPixProvider: InterPixProvider,
     private readonly interBoletoProvider: InterBoletoProvider,
+    private readonly infinityPayProvider: InfinityPayProvider,
     private readonly empresaAccess: EmpresaAccessService,
   ) {}
 
@@ -134,6 +122,40 @@ export class PedidosService {
 
     const metodo = dto.metodo ?? 'PIX'
 
+    const gatewayConfig = await this.prisma.empresaGatewayPagamento.findUnique({
+      where: { empresaId: lote.empresaId },
+    })
+
+    const usaInfinityPay =
+      isInfinityPayConfigured(gatewayConfig) || isMockInfinityPayEnabled()
+
+    if (usaInfinityPay) {
+      if (metodo === 'BOLETO') {
+        throw new BadRequestException(
+          'Boleto não está disponível para empresas com InfinitePay. Use Pix ou cartão.',
+        )
+      }
+
+      this.validarParticipantesCheckout(
+        dto.quantidade,
+        dto.participantesAdicionais,
+      )
+
+      return this.checkoutComInfinityPay({
+        lote,
+        usuario,
+        dto,
+        gatewayConfig,
+        precoUnitario: Number(lote.preco),
+        subtotal: Number(lote.preco) * dto.quantidade,
+        participantesIngresso: this.montarParticipantesIngresso(
+          usuario,
+          dto.quantidade,
+          dto.participantesAdicionais,
+        ),
+      })
+    }
+
     if (metodo === 'BOLETO') {
       const cpf = normalizeCpf(dto.compradorCpf ?? '')
 
@@ -164,10 +186,6 @@ export class PedidosService {
       metodo === 'BOLETO'
         ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
         : new Date(Date.now() + 30 * 60 * 1000)
-
-    const gatewayConfig = await this.prisma.empresaGatewayPagamento.findUnique({
-      where: { empresaId: lote.empresaId },
-    })
 
     const interConfigurado = isInterGatewayConfigured(gatewayConfig)
     const interPixPronto =
@@ -287,6 +305,11 @@ export class PedidosService {
         await this.configuracoesPagamentos.obterCredenciaisDescriptografadas(
           loteEmpresaId,
         )
+
+      if (!isInterGatewayCredenciais(creds)) {
+        throw new BadRequestException('Gateway Inter Pix não configurado')
+      }
+
       const provider = this.paymentProviderFactory.get('inter-pix')
       const charge = await provider.createPixCharge({
         creds,
@@ -322,6 +345,132 @@ export class PedidosService {
       pagamentoId: pedido.pagamentos[0]?.id,
       gateway,
       pixCopiaCola,
+      expiraEm: pedido.expiraEm,
+    }
+  }
+
+  private async checkoutComInfinityPay(input: {
+    lote: {
+      id: string
+      empresaId: string
+      eventoId: string
+      evento: { nome: string }
+    }
+    usuario: { nome: string; email: string; telefone: string | null }
+    dto: CheckoutDto
+    gatewayConfig: EmpresaGatewayPagamento | null
+    precoUnitario: number
+    subtotal: number
+    participantesIngresso: ParticipanteIngressoRegistro[]
+  }) {
+    const {
+      lote,
+      usuario,
+      dto,
+      gatewayConfig,
+      precoUnitario,
+      subtotal,
+      participantesIngresso,
+    } = input
+
+    const codigo = gerarCodigoPedido()
+    const expiraEm = new Date(Date.now() + 60 * 60 * 1000)
+    const usarInfinityPayReal =
+      !isMockInfinityPayEnabled() && isInfinityPayConfigured(gatewayConfig)
+    const gateway = usarInfinityPayReal ? 'infinitypay' : 'mock-infinitypay'
+
+    const pedido = await this.prisma.pedido.create({
+      data: {
+        empresaId: lote.empresaId,
+        eventoId: lote.eventoId,
+        codigo,
+        status: StatusPedido.PENDENTE,
+        total: subtotal,
+        compradorNome: usuario.nome,
+        compradorEmail: usuario.email,
+        compradorCpf: null,
+        compradorTelefone: usuario.telefone,
+        participantesIngresso: participantesIngresso as unknown as Prisma.InputJsonValue,
+        expiraEm,
+        itens: {
+          create: {
+            empresaId: lote.empresaId,
+            loteId: lote.id,
+            quantidade: dto.quantidade,
+            precoUnitario,
+            subtotal,
+          },
+        },
+        pagamentos: {
+          create: {
+            empresaId: lote.empresaId,
+            metodo: MetodoPagamento.PIX,
+            status: StatusPagamento.PENDENTE,
+            valor: subtotal,
+            gateway,
+            gatewayRef: null,
+          },
+        },
+      },
+      include: {
+        pagamentos: true,
+        evento: { select: { nome: true } },
+      },
+    })
+
+    let checkoutUrl: string | null = null
+    let invoiceSlug: string | null = null
+
+    if (usarInfinityPayReal) {
+      const creds =
+        await this.configuracoesPagamentos.obterCredenciaisDescriptografadas(
+          lote.empresaId,
+        )
+
+      if (!isInfinityPayGatewayCredenciais(creds)) {
+        throw new BadRequestException('Gateway InfinitePay não configurado')
+      }
+
+      const link = await this.infinityPayProvider.createCheckoutLink({
+        handle: creds.handle,
+        orderNsu: pedido.id,
+        redirectUrl: this.infinityPayProvider.buildRedirectUrl(pedido.id),
+        webhookUrl: this.infinityPayProvider.buildWebhookUrl(lote.empresaId),
+        items: [
+          {
+            quantity: dto.quantidade,
+            price: Math.round(subtotal * 100),
+            description: `Ingresso · ${pedido.evento.nome}`,
+          },
+        ],
+      })
+
+      checkoutUrl = link.checkoutUrl
+      invoiceSlug = link.invoiceSlug
+
+      await this.prisma.pagamento.update({
+        where: { id: pedido.pagamentos[0]!.id },
+        data: {
+          gatewayRef: pedido.id,
+          gatewayPayload: {
+            checkoutUrl: link.checkoutUrl,
+            invoiceSlug: link.invoiceSlug,
+            orderNsu: pedido.id,
+          },
+        },
+      })
+    }
+
+    return {
+      pedidoId: pedido.id,
+      codigo: pedido.codigo,
+      total: Number(pedido.total),
+      status: pedido.status,
+      metodo: 'CHECKOUT' as const,
+      pagamentoId: pedido.pagamentos[0]?.id,
+      gateway,
+      checkoutUrl,
+      invoiceSlug,
       expiraEm: pedido.expiraEm,
     }
   }
@@ -365,6 +514,11 @@ export class PedidosService {
         await this.configuracoesPagamentos.obterCredenciaisDescriptografadas(
           loteEmpresaId,
         )
+
+      if (!isInterGatewayCredenciais(creds)) {
+        throw new BadRequestException('Gateway Inter Boleto não configurado')
+      }
+
       const charge = await this.interBoletoProvider.createBoletoCharge({
         creds,
         pedidoCodigo: pedido.codigo,
@@ -454,6 +608,10 @@ export class PedidosService {
         pedido.empresaId,
       )
 
+    if (!isInterGatewayCredenciais(creds)) {
+      throw new BadRequestException('PDF do boleto indisponível para este pedido')
+    }
+
     return this.interBoletoProvider.getBoletoPdf(creds, pagamento.gatewayRef)
   }
 
@@ -495,6 +653,34 @@ export class PedidosService {
       const sincronizado = await this.sincronizarCobInterSePago(
         pedido.empresaId,
         pagamento.gatewayRef,
+      )
+
+      if (sincronizado) {
+        const atualizado = await this.prisma.pedido.findUnique({
+          where: { id: pedidoId },
+          include: {
+            pagamentos: true,
+            ingressos: {
+              select: { id: true, qrCodeUrl: true, participanteNome: true },
+            },
+          },
+        })
+
+        if (atualizado) {
+          status = atualizado.status
+          pedido.ingressos = atualizado.ingressos
+        }
+      }
+    }
+
+    if (
+      status === StatusPedido.PENDENTE &&
+      pagamento?.gateway === 'infinitypay' &&
+      pagamento.gatewayRef
+    ) {
+      const sincronizado = await this.sincronizarInfinityPaySePago(
+        pedido.empresaId,
+        pagamento,
       )
 
       if (sincronizado) {
@@ -562,6 +748,10 @@ export class PedidosService {
         pagamento?.gateway === 'inter-boleto'
           ? `/pedidos/${pedido.id}/boleto/pdf`
           : null,
+      checkoutUrl:
+        typeof gatewayPayload?.checkoutUrl === 'string'
+          ? gatewayPayload.checkoutUrl
+          : null,
       ingressos:
         status === StatusPedido.PAGO
           ? pedido.ingressos.map((ingresso) => ({
@@ -597,7 +787,11 @@ export class PedidosService {
 
     const gateway = pedido.pagamentos[0]?.gateway ?? 'mock-pix'
 
-    if (gateway !== 'mock-pix' && gateway !== 'mock-boleto') {
+    if (
+      gateway !== 'mock-pix' &&
+      gateway !== 'mock-boleto' &&
+      gateway !== 'mock-infinitypay'
+    ) {
       throw new BadRequestException(
         'Este pedido usa pagamento real. Aguarde a confirmação automática',
       )
@@ -644,6 +838,132 @@ export class PedidosService {
     return { received: true, processados: pixItems.length }
   }
 
+  async processarWebhookInfinityPay(empresaId: string, payload: unknown) {
+    const webhook = await this.prisma.webhook.create({
+      data: {
+        empresaId,
+        origem: 'infinitypay',
+        evento: 'checkout',
+        payload: payload as object,
+        status: StatusWebhook.PENDENTE,
+      },
+    })
+
+    try {
+      const body = (payload ?? {}) as InfinityPayWebhookPayload
+      const orderNsu = this.infinityPayProvider.extractWebhookOrderNsu(body)
+
+      if (orderNsu) {
+        await this.processarPagamentoInfinityPay(empresaId, orderNsu, body)
+      }
+
+      await this.prisma.webhook.update({
+        where: { id: webhook.id },
+        data: {
+          status: StatusWebhook.PROCESSADO,
+          processadoEm: new Date(),
+        },
+      })
+    } catch {
+      await this.prisma.webhook.update({
+        where: { id: webhook.id },
+        data: { status: StatusWebhook.FALHA },
+      })
+      throw new BadRequestException('Falha ao processar webhook InfinitePay')
+    }
+
+    return { received: true }
+  }
+
+  async processarPagamentoInfinityPay(
+    empresaId: string,
+    orderNsu: string,
+    payload?: InfinityPayWebhookPayload,
+  ) {
+    const pagamento = await this.prisma.pagamento.findFirst({
+      where: {
+        empresaId,
+        gateway: 'infinitypay',
+        OR: [{ gatewayRef: orderNsu }, { pedidoId: orderNsu }],
+      },
+      include: {
+        pedido: true,
+      },
+    })
+
+    if (!pagamento) {
+      return { processado: false, motivo: 'Pagamento não encontrado' }
+    }
+
+    if (pagamento.pedido.status === StatusPedido.PAGO) {
+      return { processado: true, motivo: 'Pedido já pago' }
+    }
+
+    if (pagamento.pedido.status !== StatusPedido.PENDENTE) {
+      return { processado: false, motivo: 'Pedido não está pendente' }
+    }
+
+    const gatewayPayload = pagamento.gatewayPayload as
+      | Record<string, unknown>
+      | null
+      | undefined
+
+    const invoiceSlug =
+      payload?.invoice_slug ??
+      payload?.invoiceSlug ??
+      (typeof gatewayPayload?.invoiceSlug === 'string'
+        ? gatewayPayload.invoiceSlug
+        : null)
+
+    const creds =
+      await this.configuracoesPagamentos.obterCredenciaisDescriptografadas(
+        empresaId,
+      )
+
+    if (!isInfinityPayGatewayCredenciais(creds)) {
+      return { processado: false, motivo: 'Credenciais InfinitePay inválidas' }
+    }
+
+    const paidAmount =
+      payload?.paid_amount ?? payload?.paidAmount ?? null
+
+    if (paidAmount == null || paidAmount <= 0) {
+      const status = await this.infinityPayProvider.checkPaymentStatus({
+        handle: creds.handle,
+        orderNsu: pagamento.pedidoId,
+        invoiceSlug,
+        transactionNsu:
+          payload?.transaction_nsu ?? payload?.transactionNsu ?? null,
+      })
+
+      if (!status.pago) {
+        return { processado: false, motivo: 'Pagamento ainda não confirmado' }
+      }
+
+      await this.prisma.pagamento.update({
+        where: { id: pagamento.id },
+        data: {
+          metodo:
+            status.captureMethod === 'credit_card'
+              ? MetodoPagamento.CARTAO
+              : MetodoPagamento.PIX,
+          gatewayPayload: {
+            ...(gatewayPayload ?? {}),
+            captureMethod: status.captureMethod,
+            transactionNsu: status.transactionNsu,
+            paidAmount: status.paidAmount,
+          },
+        },
+      })
+    }
+
+    return this.finalizarPedidoPago(
+      pagamento.pedidoId,
+      pagamento.pedido.compradorNome,
+      pagamento.pedido.compradorEmail,
+    )
+  }
+
   async processarPagamentoPorTxid(empresaId: string, txid: string) {
     const pagamento = await this.prisma.pagamento.findFirst({
       where: {
@@ -684,6 +1004,11 @@ export class PedidosService {
         await this.configuracoesPagamentos.obterCredenciaisDescriptografadas(
           empresaId,
         )
+
+      if (!isInterGatewayCredenciais(creds)) {
+        return false
+      }
+
       const status = await this.interBoletoProvider.getBoletoStatus(
         creds,
         codigoSolicitacao,
@@ -737,6 +1062,27 @@ export class PedidosService {
     )
   }
 
+  private async sincronizarInfinityPaySePago(
+    empresaId: string,
+    pagamento: {
+      id: string
+      pedidoId: string
+      gatewayRef: string | null
+      gatewayPayload: unknown
+    },
+  ): Promise<boolean> {
+    try {
+      const result = await this.processarPagamentoInfinityPay(
+        empresaId,
+        pagamento.gatewayRef ?? pagamento.pedidoId,
+      )
+
+      return 'processado' in result && result.processado === true
+    } catch {
+      return false
+    }
+  }
+
   private async sincronizarCobInterSePago(
     empresaId: string,
     txid: string,
@@ -746,6 +1092,11 @@ export class PedidosService {
         await this.configuracoesPagamentos.obterCredenciaisDescriptografadas(
           empresaId,
         )
+
+      if (!isInterGatewayCredenciais(creds)) {
+        return false
+      }
+
       const cob = await this.interPixProvider.getChargeStatus(creds, txid)
 
       if (cob.status !== 'CONCLUIDA' && cob.status !== 'PAGA') {

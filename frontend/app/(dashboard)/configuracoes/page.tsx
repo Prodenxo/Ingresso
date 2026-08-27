@@ -2,7 +2,7 @@
 
 import { Card } from '@heroui/react'
 import { ShieldAlert } from 'lucide-react'
-import { GatewayInterPagamentosForm } from '@/components/configuracoes/gateway-inter-pagamentos-form'
+import { GatewayPagamentosForm } from '@/components/configuracoes/gateway-pagamentos-form'
 import { AdminShell } from '@/components/layout/admin-shell'
 import { useAuth } from '@/components/auth/auth-provider'
 import { canConfigurarPagamentos } from '@/lib/auth-roles'
@@ -18,7 +18,7 @@ export default function ConfiguracoesPage() {
     >
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         {podeConfigurar ? (
-          <GatewayInterPagamentosForm />
+          <GatewayPagamentosForm />
         ) : (
           <Card className="glass-panel rounded-2xl border-white/10 p-6">
             <div className="flex items-start gap-3">

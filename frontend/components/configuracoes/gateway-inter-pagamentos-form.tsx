@@ -60,7 +60,11 @@ function formatDateTime(value: string | null): string | null {
   }).format(new Date(value))
 }
 
-export function GatewayInterPagamentosForm() {
+export function GatewayInterPagamentosForm({
+  embedded = false,
+}: {
+  embedded?: boolean
+}) {
   const [resumo, setResumo] = useState<GatewayPagamentoResumo | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [isLoading, setIsLoading] = useState(true)
@@ -256,6 +260,10 @@ export function GatewayInterPagamentosForm() {
   }
 
   if (isLoading) {
+    if (embedded) {
+      return <p className="text-sm text-zinc-400">Carregando configurações...</p>
+    }
+
     return (
       <Card className="glass-panel rounded-2xl border-white/10 p-6">
         <p className="text-sm text-zinc-400">Carregando configurações...</p>
@@ -267,9 +275,9 @@ export function GatewayInterPagamentosForm() {
   const precisaCertificado = !resumo?.temCertificado
   const precisaChavePrivada = !resumo?.temChavePrivada
 
-  return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      {resumo?.configurado ? (
+  const content = (
+    <div className={embedded ? 'flex flex-col gap-4' : 'mx-auto flex max-w-2xl flex-col gap-4'}>
+      {!embedded && resumo?.configurado ? (
         <Card className="glass-panel rounded-2xl border-white/10 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -323,16 +331,22 @@ export function GatewayInterPagamentosForm() {
       ) : null}
 
       <form
-        className="glass-panel form-stack rounded-2xl p-6 md:p-8"
+        className={
+          embedded
+            ? 'form-stack space-y-4'
+            : 'glass-panel form-stack rounded-2xl p-6 md:p-8'
+        }
         onSubmit={handleSubmit}
       >
-        <div>
-          <h2 className="text-lg font-medium text-white">Inter Pix</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Credenciais da conta PJ no Inter. Os dados sensíveis ficam criptografados
-            no servidor.
-          </p>
-        </div>
+        {!embedded ? (
+          <div>
+            <h2 className="text-lg font-medium text-white">Inter Pix</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Credenciais da conta PJ no Inter. Os dados sensíveis ficam criptografados
+              no servidor.
+            </p>
+          </div>
+        ) : null}
 
         {error ? (
           <p className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -500,4 +514,10 @@ export function GatewayInterPagamentosForm() {
       </form>
     </div>
   )
+
+  if (embedded) {
+    return content
+  }
+
+  return content
 }

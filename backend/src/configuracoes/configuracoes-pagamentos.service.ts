@@ -10,6 +10,7 @@ import {
 } from '../common/crypto/field-encryption'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
 import { PaymentProviderFactory } from '../payments/payment-provider.factory'
+import { InfinityPayProvider } from '../payments/providers/infinitypay.provider'
 import { PrismaService } from '../prisma/prisma.service'
 import { SalvarGatewayPagamentoDto } from './dto/salvar-gateway-pagamento.dto'
 import type {
@@ -20,6 +21,11 @@ import type {
   GatewayStatus,
   TestarConexaoPagamentoResponse,
 } from './gateway-pagamento.types'
+import {
+  isInfinityPayGatewayCredenciais,
+} from './gateway-pagamento.types'
+
+const PLACEHOLDER_SECRET = '-'
 
 @Injectable()
 export class ConfiguracoesPagamentosService {
@@ -27,6 +33,7 @@ export class ConfiguracoesPagamentosService {
     private readonly prisma: PrismaService,
     private readonly empresaAccess: EmpresaAccessService,
     private readonly paymentProviderFactory: PaymentProviderFactory,
+    private readonly infinityPayProvider: InfinityPayProvider,
   ) {}
 
   async obterResumo(usuarioId: string): Promise<GatewayPagamentoResumo> {
@@ -39,36 +46,25 @@ export class ConfiguracoesPagamentosService {
     })
 
     if (!gateway) {
-      return {
-        configurado: false,
-        provider: null,
-        ambiente: null,
-        status: null,
-        clientIdMascarado: null,
-        temClientSecret: false,
-        temCertificado: false,
-        temChavePrivada: false,
-        temWebhookSecret: false,
-        chavePix: null,
-        conectadoEm: null,
-        ultimoErro: null,
-        atualizadoEm: null,
-      }
+      return this.resumoVazio()
     }
 
+    const provider = gateway.provider as GatewayProvider
     const clientId = decryptField(gateway.clientIdEnc)
+    const isInfinity = provider === 'infinitypay'
 
     return {
       configurado: true,
-      provider: gateway.provider as GatewayProvider,
+      provider,
       ambiente: gateway.ambiente as GatewayAmbiente,
       status: gateway.status as GatewayStatus,
-      clientIdMascarado: maskSecret(clientId),
-      temClientSecret: Boolean(gateway.clientSecretEnc),
-      temCertificado: Boolean(gateway.certificadoEnc),
-      temChavePrivada: Boolean(gateway.chavePrivadaEnc),
+      clientIdMascarado: isInfinity ? null : maskSecret(clientId),
+      handleMascarado: isInfinity ? maskSecret(clientId) : null,
+      temClientSecret: isInfinity ? false : Boolean(gateway.clientSecretEnc),
+      temCertificado: isInfinity ? false : Boolean(gateway.certificadoEnc),
+      temChavePrivada: isInfinity ? false : Boolean(gateway.chavePrivadaEnc),
       temWebhookSecret: Boolean(gateway.webhookSecretEnc),
-      chavePix: gateway.chavePix,
+      chavePix: isInfinity ? null : gateway.chavePix,
       conectadoEm: gateway.conectadoEm?.toISOString() ?? null,
       ultimoErro: gateway.ultimoErro,
       atualizadoEm: gateway.updatedAt.toISOString(),
@@ -83,79 +79,11 @@ export class ConfiguracoesPagamentosService {
       usuarioId,
     )
 
-    const existente = await this.prisma.empresaGatewayPagamento.findUnique({
-      where: { empresaId },
-    })
-
-    if (dto.clientId?.trim() && existente?.clientIdEnc && !dto.clientSecret?.trim()) {
-      const clientIdAtual = decryptField(existente.clientIdEnc)
-
-      if (dto.clientId.trim() !== clientIdAtual) {
-        throw new BadRequestException(
-          'Ao alterar o Client ID, informe o Client Secret novamente',
-        )
-      }
+    if (dto.provider === 'infinitypay') {
+      return this.salvarInfinityPay(empresaId, usuarioId, dto)
     }
 
-    const clientId = this.resolveTextField(
-      dto.clientId,
-      existente?.clientIdEnc,
-      'Client ID',
-    )
-    const clientSecret = this.resolveSecretField(
-      dto.clientSecret,
-      existente?.clientSecretEnc,
-      'Client Secret',
-    )
-    const certificadoPem = this.resolveTextField(
-      dto.certificadoPem,
-      existente?.certificadoEnc,
-      'Certificado',
-    )
-    const chavePrivadaPem = this.resolveSecretField(
-      dto.chavePrivadaPem,
-      existente?.chavePrivadaEnc,
-      'Chave privada',
-    )
-
-    const webhookSecret = dto.webhookSecret?.trim()
-      ? dto.webhookSecret.trim()
-      : existente?.webhookSecretEnc
-        ? decryptField(existente.webhookSecretEnc)
-        : null
-
-    const data = {
-      provider: dto.provider,
-      ambiente: dto.ambiente,
-      clientIdEnc: encryptField(clientId),
-      clientSecretEnc: encryptField(clientSecret),
-      certificadoEnc: encryptField(this.normalizePem(certificadoPem)),
-      chavePrivadaEnc: encryptField(this.normalizePem(chavePrivadaPem)),
-      webhookSecretEnc: webhookSecret
-        ? encryptField(webhookSecret)
-        : null,
-      chavePix: dto.chavePix?.trim() || null,
-      status: 'pendente',
-      ultimoErro: null,
-      conectadoEm: null,
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.empresaGatewayPagamento.upsert({
-        where: { empresaId },
-        create: {
-          empresaId,
-          ...data,
-        },
-        update: data,
-      }),
-      this.prisma.empresa.update({
-        where: { id: empresaId },
-        data: { gatewayPagamento: dto.provider },
-      }),
-    ])
-
-    return this.obterResumo(usuarioId)
+    return this.salvarInterPix(empresaId, usuarioId, dto)
   }
 
   async remover(usuarioId: string): Promise<{ message: string }> {
@@ -200,8 +128,12 @@ export class ConfiguracoesPagamentosService {
     }
 
     const creds = await this.obterCredenciaisDescriptografadas(empresaId)
-    const provider = this.paymentProviderFactory.get(creds.provider)
-    const result = await provider.testConnection(creds)
+
+    const result = isInfinityPayGatewayCredenciais(creds)
+      ? await this.infinityPayProvider.testConnection(creds, empresaId)
+      : await this.paymentProviderFactory
+          .get('inter-pix')
+          .testConnection(creds)
 
     await this.prisma.empresaGatewayPagamento.update({
       where: { empresaId },
@@ -211,7 +143,7 @@ export class ConfiguracoesPagamentosService {
             conectadoEm: result.pixHabilitado ? new Date() : null,
             ultimoErro: result.pixHabilitado
               ? null
-              : (result.message ?? 'Pix ainda não habilitado no Inter'),
+              : (result.message ?? 'Conexão parcial'),
           }
         : {
             status: 'erro',
@@ -240,8 +172,18 @@ export class ConfiguracoesPagamentosService {
       throw new NotFoundException('Gateway de pagamento não configurado')
     }
 
+    const provider = gateway.provider as GatewayProvider
+
+    if (provider === 'infinitypay') {
+      return {
+        provider: 'infinitypay',
+        ambiente: gateway.ambiente as GatewayAmbiente,
+        handle: decryptField(gateway.clientIdEnc).trim(),
+      }
+    }
+
     return {
-      provider: gateway.provider as GatewayProvider,
+      provider: 'inter-pix',
       ambiente: gateway.ambiente as GatewayAmbiente,
       clientId: decryptField(gateway.clientIdEnc).trim(),
       clientSecret: decryptField(gateway.clientSecretEnc).trim(),
@@ -251,6 +193,168 @@ export class ConfiguracoesPagamentosService {
         ? decryptField(gateway.webhookSecretEnc)
         : null,
       chavePix: gateway.chavePix,
+    }
+  }
+
+  private async salvarInfinityPay(
+    empresaId: string,
+    usuarioId: string,
+    dto: SalvarGatewayPagamentoDto,
+  ): Promise<GatewayPagamentoResumo> {
+    const existente = await this.prisma.empresaGatewayPagamento.findUnique({
+      where: { empresaId },
+    })
+
+    const handle = dto.clientId?.trim().replace(/^\$+/, '')
+
+    if (!handle && !existente?.clientIdEnc) {
+      throw new BadRequestException('InfiniteTag (handle) é obrigatório')
+    }
+
+    const handleFinal =
+      handle ??
+      decryptField(existente!.clientIdEnc).trim().replace(/^\$+/, '')
+
+    const placeholderEnc = encryptField(PLACEHOLDER_SECRET)
+    const ambiente = dto.ambiente ?? 'producao'
+
+    const data = {
+      provider: 'infinitypay' as const,
+      ambiente,
+      clientIdEnc: encryptField(handleFinal),
+      clientSecretEnc: placeholderEnc,
+      certificadoEnc: placeholderEnc,
+      chavePrivadaEnc: placeholderEnc,
+      webhookSecretEnc: null,
+      chavePix: null,
+      status: 'pendente',
+      ultimoErro: null,
+      conectadoEm: null,
+    }
+
+    await this.persistirGateway(empresaId, 'infinitypay', data)
+
+    return this.obterResumo(usuarioId)
+  }
+
+  private async salvarInterPix(
+    empresaId: string,
+    usuarioId: string,
+    dto: SalvarGatewayPagamentoDto,
+  ): Promise<GatewayPagamentoResumo> {
+    const existente = await this.prisma.empresaGatewayPagamento.findUnique({
+      where: { empresaId },
+    })
+
+    if (!dto.ambiente) {
+      throw new BadRequestException('Ambiente é obrigatório para Banco Inter')
+    }
+
+    if (dto.clientId?.trim() && existente?.clientIdEnc && !dto.clientSecret?.trim()) {
+      const clientIdAtual = decryptField(existente.clientIdEnc)
+
+      if (dto.clientId.trim() !== clientIdAtual) {
+        throw new BadRequestException(
+          'Ao alterar o Client ID, informe o Client Secret novamente',
+        )
+      }
+    }
+
+    const clientId = this.resolveTextField(
+      dto.clientId,
+      existente?.clientIdEnc,
+      'Client ID',
+    )
+    const clientSecret = this.resolveSecretField(
+      dto.clientSecret,
+      existente?.clientSecretEnc,
+      'Client Secret',
+    )
+    const certificadoPem = this.resolveTextField(
+      dto.certificadoPem,
+      existente?.certificadoEnc,
+      'Certificado',
+    )
+    const chavePrivadaPem = this.resolveSecretField(
+      dto.chavePrivadaPem,
+      existente?.chavePrivadaEnc,
+      'Chave privada',
+    )
+
+    const webhookSecret = dto.webhookSecret?.trim()
+      ? dto.webhookSecret.trim()
+      : existente?.webhookSecretEnc
+        ? decryptField(existente.webhookSecretEnc)
+        : null
+
+    const data = {
+      provider: 'inter-pix' as const,
+      ambiente: dto.ambiente,
+      clientIdEnc: encryptField(clientId),
+      clientSecretEnc: encryptField(clientSecret),
+      certificadoEnc: encryptField(this.normalizePem(certificadoPem)),
+      chavePrivadaEnc: encryptField(this.normalizePem(chavePrivadaPem)),
+      webhookSecretEnc: webhookSecret ? encryptField(webhookSecret) : null,
+      chavePix: dto.chavePix?.trim() || null,
+      status: 'pendente',
+      ultimoErro: null,
+      conectadoEm: null,
+    }
+
+    await this.persistirGateway(empresaId, 'inter-pix', data)
+
+    return this.obterResumo(usuarioId)
+  }
+
+  private async persistirGateway(
+    empresaId: string,
+    provider: GatewayProvider,
+    data: {
+      provider: string
+      ambiente: string
+      clientIdEnc: string
+      clientSecretEnc: string
+      certificadoEnc: string
+      chavePrivadaEnc: string
+      webhookSecretEnc: string | null
+      chavePix: string | null
+      status: string
+      ultimoErro: string | null
+      conectadoEm: Date | null
+    },
+  ) {
+    await this.prisma.$transaction([
+      this.prisma.empresaGatewayPagamento.upsert({
+        where: { empresaId },
+        create: {
+          empresaId,
+          ...data,
+        },
+        update: data,
+      }),
+      this.prisma.empresa.update({
+        where: { id: empresaId },
+        data: { gatewayPagamento: provider },
+      }),
+    ])
+  }
+
+  private resumoVazio(): GatewayPagamentoResumo {
+    return {
+      configurado: false,
+      provider: null,
+      ambiente: null,
+      status: null,
+      clientIdMascarado: null,
+      handleMascarado: null,
+      temClientSecret: false,
+      temCertificado: false,
+      temChavePrivada: false,
+      temWebhookSecret: false,
+      chavePix: null,
+      conectadoEm: null,
+      ultimoErro: null,
+      atualizadoEm: null,
     }
   }
 

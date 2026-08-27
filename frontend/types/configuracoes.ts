@@ -1,13 +1,16 @@
+export type GatewayProvider = 'inter-pix' | 'infinitypay'
+
 export type GatewayAmbiente = 'sandbox' | 'producao'
 
 export type GatewayStatus = 'pendente' | 'conectado' | 'erro'
 
 export interface GatewayPagamentoResumo {
   configurado: boolean
-  provider: 'inter-pix' | null
+  provider: GatewayProvider | null
   ambiente: GatewayAmbiente | null
   status: GatewayStatus | null
   clientIdMascarado: string | null
+  handleMascarado: string | null
   temClientSecret: boolean
   temCertificado: boolean
   temChavePrivada: boolean
@@ -25,8 +28,8 @@ export interface TestarConexaoPagamentoResponse extends GatewayPagamentoResumo {
 }
 
 export interface SalvarGatewayPagamentoPayload {
-  provider: 'inter-pix'
-  ambiente: GatewayAmbiente
+  provider: GatewayProvider
+  ambiente?: GatewayAmbiente
   clientId?: string
   clientSecret?: string
   certificadoPem?: string

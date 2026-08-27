@@ -12,7 +12,7 @@ import {
 } from 'class-validator'
 import { ParticipanteAdicionalDto } from './participante-adicional.dto'
 
-export const METODOS_CHECKOUT = ['PIX', 'BOLETO'] as const
+export const METODOS_CHECKOUT = ['PIX', 'BOLETO', 'CHECKOUT'] as const
 export type MetodoCheckout = (typeof METODOS_CHECKOUT)[number]
 
 export class CheckoutDto {

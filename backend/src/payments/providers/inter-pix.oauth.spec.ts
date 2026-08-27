@@ -3,9 +3,9 @@ import {
   normalizeInterPem,
   validateInterCredentials,
 } from './inter-pix.oauth'
-import type { GatewayPagamentoCredenciais } from '../../configuracoes/gateway-pagamento.types'
+import type { InterGatewayCredenciais } from '../../configuracoes/gateway-pagamento.types'
 
-const baseCreds: GatewayPagamentoCredenciais = {
+const baseCreds: InterGatewayCredenciais = {
   provider: 'inter-pix',
   ambiente: 'producao',
   clientId: 'client-id',

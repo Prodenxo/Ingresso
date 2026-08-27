@@ -14,29 +14,39 @@ export class SalvarGatewayPagamentoDto {
   @IsIn(GATEWAY_PROVIDERS)
   provider!: (typeof GATEWAY_PROVIDERS)[number]
 
+  @IsOptional()
   @IsIn(GATEWAY_AMBIENTES)
-  ambiente!: (typeof GATEWAY_AMBIENTES)[number]
+  ambiente?: (typeof GATEWAY_AMBIENTES)[number]
 
+  /** Inter: Client ID · InfinityPay: InfiniteTag (handle) */
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   clientId?: string
 
-  @ValidateIf((dto: SalvarGatewayPagamentoDto) => dto.clientSecret !== undefined)
+  @ValidateIf(
+    (dto: SalvarGatewayPagamentoDto) =>
+      dto.provider === 'inter-pix' && dto.clientSecret !== undefined,
+  )
   @IsString()
   @IsNotEmpty()
   clientSecret?: string
 
+  @ValidateIf((dto: SalvarGatewayPagamentoDto) => dto.provider === 'inter-pix')
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   certificadoPem?: string
 
-  @ValidateIf((dto: SalvarGatewayPagamentoDto) => dto.chavePrivadaPem !== undefined)
+  @ValidateIf(
+    (dto: SalvarGatewayPagamentoDto) =>
+      dto.provider === 'inter-pix' && dto.chavePrivadaPem !== undefined,
+  )
   @IsString()
   @IsNotEmpty()
   chavePrivadaPem?: string
 
+  @ValidateIf((dto: SalvarGatewayPagamentoDto) => dto.provider === 'inter-pix')
   @IsOptional()
   @IsString()
   chavePix?: string

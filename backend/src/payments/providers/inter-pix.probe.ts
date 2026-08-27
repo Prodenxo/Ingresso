@@ -1,4 +1,4 @@
-import type { GatewayPagamentoCredenciais } from '../../configuracoes/gateway-pagamento.types'
+import type { InterGatewayCredenciais } from '../../configuracoes/gateway-pagamento.types'
 import {
   INTER_BOLETO_OAUTH_SCOPES,
   INTER_PIX_OAUTH_SCOPES,
@@ -21,7 +21,7 @@ const INTER_TEST_SCOPE_SETS: Array<{ label: string; scope: string }> = [
 
 export async function probeInterOAuthScopes(
   baseUrl: string,
-  creds: GatewayPagamentoCredenciais,
+  creds: InterGatewayCredenciais,
   timeoutMs: number,
 ): Promise<InterScopeProbeResult[]> {
   const results: InterScopeProbeResult[] = []

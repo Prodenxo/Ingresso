@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import type { GatewayPagamentoCredenciais } from '../../configuracoes/gateway-pagamento.types'
+import type { InterGatewayCredenciais } from '../../configuracoes/gateway-pagamento.types'
 import {
   INTER_BOLETO_OAUTH_SCOPES,
   INTER_PIX_BASE_URLS,
@@ -24,7 +24,7 @@ import {
 } from './inter-boleto.helpers'
 
 export interface BoletoChargeParams {
-  creds: GatewayPagamentoCredenciais
+  creds: InterGatewayCredenciais
   pedidoCodigo: string
   valor: number
   vencimentoEm: Date
@@ -138,7 +138,7 @@ export class InterBoletoProvider {
   }
 
   async getBoletoStatus(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
     codigoSolicitacao: string,
   ): Promise<{ situacao: string; pago: boolean }> {
     const accessToken = await this.obtainAccessToken(creds)
@@ -162,7 +162,7 @@ export class InterBoletoProvider {
   }
 
   async getBoletoPdf(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
     codigoSolicitacao: string,
   ): Promise<Buffer> {
     const token = await this.obtainAccessToken(creds)
@@ -202,7 +202,7 @@ export class InterBoletoProvider {
   }
 
   private async aguardarDetalhesBoleto(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
     codigoSolicitacao: string,
     accessToken: string,
   ): Promise<InterCobrancaDetalhe | null> {
@@ -241,7 +241,7 @@ export class InterBoletoProvider {
   }
 
   private async obtainAccessToken(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
   ): Promise<string> {
     const cacheKey = `${creds.ambiente}:${creds.clientId}:boleto`
     const cached = this.tokenCache.get(cacheKey)
@@ -271,7 +271,7 @@ export class InterBoletoProvider {
   }
 
   private async authenticatedRequest<T>(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
     accessToken: string,
     options: {
       method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'

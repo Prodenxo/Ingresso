@@ -9,9 +9,11 @@ import {
   StatusEvento,
   StatusLote,
   VisibilidadeEvento,
+  type EmpresaGatewayPagamento,
 } from '@prisma/client'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
 import { buildUniqueSlug } from '../common/utils/slug'
+import { resolverFormasPagamento } from '../payments/gateway-resolver'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateEventoDto } from './dto/create-evento.dto'
 import { CreateLoteDto } from './dto/create-lote.dto'
@@ -125,8 +127,22 @@ export class EventosService {
       orderBy: { dataInicio: 'asc' },
     })
 
+    const gateways = await this.prisma.empresaGatewayPagamento.findMany({
+      where: { empresaId: { in: empresaIds } },
+    })
+
+    const gatewayPorEmpresa = new Map(
+      gateways.map((gateway) => [gateway.empresaId, gateway]),
+    )
+
     return eventos
-      .map((evento) => this.mapEventoDisponivel(evento, now))
+      .map((evento) =>
+        this.mapEventoDisponivel(
+          evento,
+          now,
+          gatewayPorEmpresa.get(evento.empresa.id) ?? null,
+        ),
+      )
       .filter((evento) => evento.lotes.length > 0)
   }
 
@@ -437,7 +453,11 @@ export class EventosService {
     })
   }
 
-  private mapEventoDisponivel(evento: EventoDisponivelRow, now: Date) {
+  private mapEventoDisponivel(
+    evento: EventoDisponivelRow,
+    now: Date,
+    gatewayConfig: EmpresaGatewayPagamento | null,
+  ) {
     const lotes = evento.lotes
       .filter(
         (lote) =>
@@ -470,6 +490,7 @@ export class EventosService {
       bannerUrl: this.mediaService.resolvePublicUrl(evento.bannerUrl),
       formato: evento.formato,
       empresa: evento.empresa,
+      formasPagamento: resolverFormasPagamento(gatewayConfig),
       lotes,
     }
   }

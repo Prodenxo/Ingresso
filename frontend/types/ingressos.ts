@@ -1,3 +1,5 @@
+export type FormaPagamentoDisponivel = 'PIX' | 'BOLETO' | 'CHECKOUT'
+
 export interface LoteDisponivel {
   id: string
   nome: string
@@ -25,6 +27,7 @@ export interface EventoDisponivel {
     id: string
     nome: string
   }
+  formasPagamento: FormaPagamentoDisponivel[]
   lotes: LoteDisponivel[]
 }
 

@@ -1,4 +1,4 @@
-export const GATEWAY_PROVIDERS = ['inter-pix'] as const
+export const GATEWAY_PROVIDERS = ['inter-pix', 'infinitypay'] as const
 
 export const GATEWAY_AMBIENTES = ['sandbox', 'producao'] as const
 
@@ -16,6 +16,7 @@ export interface GatewayPagamentoResumo {
   ambiente: GatewayAmbiente | null
   status: GatewayStatus | null
   clientIdMascarado: string | null
+  handleMascarado: string | null
   temClientSecret: boolean
   temCertificado: boolean
   temChavePrivada: boolean
@@ -32,8 +33,8 @@ export interface TestarConexaoPagamentoResponse extends GatewayPagamentoResumo {
   pixHabilitado: boolean
 }
 
-export interface GatewayPagamentoCredenciais {
-  provider: GatewayProvider
+export interface InterGatewayCredenciais {
+  provider: 'inter-pix'
   ambiente: GatewayAmbiente
   clientId: string
   clientSecret: string
@@ -41,4 +42,26 @@ export interface GatewayPagamentoCredenciais {
   chavePrivadaPem: string
   webhookSecret: string | null
   chavePix: string | null
+}
+
+export interface InfinityPayGatewayCredenciais {
+  provider: 'infinitypay'
+  ambiente: GatewayAmbiente
+  handle: string
+}
+
+export type GatewayPagamentoCredenciais =
+  | InterGatewayCredenciais
+  | InfinityPayGatewayCredenciais
+
+export function isInterGatewayCredenciais(
+  creds: GatewayPagamentoCredenciais,
+): creds is InterGatewayCredenciais {
+  return creds.provider === 'inter-pix'
+}
+
+export function isInfinityPayGatewayCredenciais(
+  creds: GatewayPagamentoCredenciais,
+): creds is InfinityPayGatewayCredenciais {
+  return creds.provider === 'infinitypay'
 }

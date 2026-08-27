@@ -14,6 +14,7 @@ import {
   validarParticipantesAdicionais,
 } from '@/lib/cpf'
 import { formatCurrency } from '@/lib/utils'
+import type { FormaPagamentoDisponivel } from '@/types/ingressos'
 import type {
   CheckoutRequest,
   CheckoutResponse,
@@ -26,6 +27,7 @@ interface CheckoutPixModalProps {
   preco: number
   limitePorCompra: number
   disponiveis: number
+  formasPagamento?: FormaPagamentoDisponivel[]
   onClose: () => void
   onSuccess: () => void
 }
@@ -40,12 +42,16 @@ export function CheckoutPixModal({
   preco,
   limitePorCompra,
   disponiveis,
+  formasPagamento = ['PIX', 'BOLETO'],
   onClose,
   onSuccess,
 }: CheckoutPixModalProps) {
   const { user } = useAuth()
+  const usaCheckoutOnline = formasPagamento.includes('CHECKOUT')
   const [quantidade, setQuantidade] = useState(1)
-  const [metodoPagamento, setMetodoPagamento] = useState<'PIX' | 'BOLETO'>('PIX')
+  const [metodoPagamento, setMetodoPagamento] = useState<'PIX' | 'BOLETO' | 'CHECKOUT'>(
+    usaCheckoutOnline ? 'CHECKOUT' : 'PIX',
+  )
   const [compradorCpf, setCompradorCpf] = useState('')
   const [participantesAdicionais, setParticipantesAdicionais] = useState<
     ParticipanteAdicionalForm[]
@@ -64,9 +70,17 @@ export function CheckoutPixModal({
   const maxQtd = Math.min(limitePorCompra, disponiveis)
   const total = preco * quantidade
   const isPagamentoReal =
-    checkout?.gateway === 'inter-pix' || checkout?.gateway === 'inter-boleto'
+    checkout?.gateway === 'inter-pix' ||
+    checkout?.gateway === 'inter-boleto' ||
+    checkout?.gateway === 'infinitypay'
   const isModoSimulacao =
-    checkout?.gateway === 'mock-pix' || checkout?.gateway === 'mock-boleto'
+    checkout?.gateway === 'mock-pix' ||
+    checkout?.gateway === 'mock-boleto' ||
+    checkout?.gateway === 'mock-infinitypay'
+  const isCheckoutOnline =
+    checkout?.metodo === 'CHECKOUT' ||
+    metodoPagamento === 'CHECKOUT' ||
+    usaCheckoutOnline
   const isBoleto = checkout?.metodo === 'BOLETO' || metodoPagamento === 'BOLETO'
 
   useEffect(() => {
@@ -167,7 +181,7 @@ export function CheckoutPixModal({
     try {
       const payload: CheckoutRequest = {
         quantidade,
-        metodo: metodoPagamento,
+        metodo: usaCheckoutOnline ? 'CHECKOUT' : metodoPagamento,
       }
 
       if (metodoPagamento === 'BOLETO') {
@@ -192,8 +206,17 @@ export function CheckoutPixModal({
       setCheckout(result)
       setStep('pagamento')
 
-      if (result.gateway === 'inter-pix' || result.gateway === 'inter-boleto') {
+      if (
+        result.gateway === 'inter-pix' ||
+        result.gateway === 'inter-boleto' ||
+        result.gateway === 'infinitypay'
+      ) {
         iniciarPolling(result.pedidoId)
+      }
+
+      if (result.gateway === 'infinitypay' && result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl)
+        return
       }
 
       if (result.gateway === 'inter-boleto' && result.boletoPdfUrl) {
@@ -389,30 +412,40 @@ export function CheckoutPixModal({
 
             <div className="space-y-2">
               <Label>Forma de pagamento</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
-                    metodoPagamento === 'PIX'
-                      ? 'border-indigo-500/50 bg-indigo-500/15 text-white'
-                      : 'border-white/10 bg-white/5 text-zinc-400'
-                  }`}
-                  onClick={() => setMetodoPagamento('PIX')}
-                >
-                  Pix
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
-                    metodoPagamento === 'BOLETO'
-                      ? 'border-indigo-500/50 bg-indigo-500/15 text-white'
-                      : 'border-white/10 bg-white/5 text-zinc-400'
-                  }`}
-                  onClick={() => setMetodoPagamento('BOLETO')}
-                >
-                  Boleto
-                </button>
-              </div>
+              {usaCheckoutOnline ? (
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
+                  Pix ou cartão de crédito (até 12x) via InfinitePay
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {formasPagamento.includes('PIX') ? (
+                    <button
+                      type="button"
+                      className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
+                        metodoPagamento === 'PIX'
+                          ? 'border-indigo-500/50 bg-indigo-500/15 text-white'
+                          : 'border-white/10 bg-white/5 text-zinc-400'
+                      }`}
+                      onClick={() => setMetodoPagamento('PIX')}
+                    >
+                      Pix
+                    </button>
+                  ) : null}
+                  {formasPagamento.includes('BOLETO') ? (
+                    <button
+                      type="button"
+                      className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
+                        metodoPagamento === 'BOLETO'
+                          ? 'border-indigo-500/50 bg-indigo-500/15 text-white'
+                          : 'border-white/10 bg-white/5 text-zinc-400'
+                      }`}
+                      onClick={() => setMetodoPagamento('BOLETO')}
+                    >
+                      Boleto
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             {metodoPagamento === 'BOLETO' ? (
@@ -447,16 +480,50 @@ export function CheckoutPixModal({
             >
               {isLoading
                 ? 'Processando...'
-                : metodoPagamento === 'BOLETO'
-                  ? 'Continuar para boleto'
-                  : 'Continuar para PIX'}
+                : usaCheckoutOnline
+                  ? 'Ir para pagamento'
+                  : metodoPagamento === 'BOLETO'
+                    ? 'Continuar para boleto'
+                    : 'Continuar para PIX'}
             </Button>
           </div>
         ) : null}
 
         {step === 'pagamento' && checkout ? (
           <div className="space-y-4">
-            {isBoleto ? (
+            {isCheckoutOnline ? (
+              <>
+                <p className="text-sm text-zinc-400">
+                  {checkout.gateway === 'infinitypay'
+                    ? 'Você será redirecionado ao checkout InfinitePay. Após pagar, volte para ver seus ingressos.'
+                    : 'Simulação InfinitePay — confirme o pagamento para gerar seus ingressos.'}
+                </p>
+                {checkout.checkoutUrl ? (
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    onPress={() => window.location.assign(checkout.checkoutUrl!)}
+                  >
+                    Abrir checkout InfinitePay
+                  </Button>
+                ) : null}
+                {isPagamentoReal ? (
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2.5 text-sm text-indigo-200">
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    {isAguardandoPagamento ? 'Aguardando pagamento...' : 'Processando...'}
+                  </div>
+                ) : (
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    isDisabled={isLoading}
+                    onPress={() => void handleConfirmarPix()}
+                  >
+                    {isLoading ? 'Confirmando...' : 'Confirmar pagamento'}
+                  </Button>
+                )}
+              </>
+            ) : isBoleto ? (
               <>
                 <p className="text-sm text-zinc-400">
                   {isPagamentoReal
@@ -526,21 +593,23 @@ export function CheckoutPixModal({
                 </Button>
               </>
             )}
-            {isPagamentoReal ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2.5 text-sm text-indigo-200">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                {isAguardandoPagamento ? 'Aguardando pagamento...' : 'Processando...'}
-              </div>
-            ) : (
-              <Button
-                variant="primary"
-                className="w-full"
-                isDisabled={isLoading}
-                onPress={() => void handleConfirmarPix()}
-              >
-                {isLoading ? 'Confirmando...' : 'Confirmar pagamento'}
-              </Button>
-            )}
+            {!isCheckoutOnline ? (
+              isPagamentoReal ? (
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2.5 text-sm text-indigo-200">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  {isAguardandoPagamento ? 'Aguardando pagamento...' : 'Processando...'}
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  isDisabled={isLoading}
+                  onPress={() => void handleConfirmarPix()}
+                >
+                  {isLoading ? 'Confirmando...' : 'Confirmar pagamento'}
+                </Button>
+              )
+            ) : null}
           </div>
         ) : null}
 

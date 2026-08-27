@@ -13,13 +13,14 @@ import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
 import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
 import { buildCheckoutLoteLabel } from '@/lib/ingressos-utils'
-import type { EventoDisponivel, LoteDisponivel } from '@/types/ingressos'
+import type { EventoDisponivel, FormaPagamentoDisponivel, LoteDisponivel } from '@/types/ingressos'
 
 interface CheckoutTarget {
   lote: LoteDisponivel
   eventoNome: string
   loteIndex: number
   totalLotes: number
+  formasPagamento: FormaPagamentoDisponivel[]
 }
 
 export default function IngressosDisponiveisPage() {
@@ -123,6 +124,7 @@ export default function IngressosDisponiveisPage() {
                   eventoNome: evento.nome,
                   loteIndex: loteIndex >= 0 ? loteIndex : 0,
                   totalLotes: evento.lotes.length,
+                  formasPagamento: evento.formasPagamento ?? ['PIX', 'BOLETO'],
                 })
               }}
             />
@@ -142,6 +144,7 @@ export default function IngressosDisponiveisPage() {
           preco={checkoutTarget.lote.preco}
           limitePorCompra={checkoutTarget.lote.limitePorCompra}
           disponiveis={checkoutTarget.lote.disponiveis}
+          formasPagamento={checkoutTarget.formasPagamento}
           onClose={() => setCheckoutTarget(null)}
           onSuccess={() => void loadDisponiveis()}
         />

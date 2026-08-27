@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
-import type { GatewayPagamentoCredenciais } from '../../configuracoes/gateway-pagamento.types'
+import type { InterGatewayCredenciais } from '../../configuracoes/gateway-pagamento.types'
 import { interMtlsRequest } from './inter-pix-http.client'
 import { mapInterHttpError } from './inter-pix.errors'
 import type { InterOAuthTokenResponse } from './inter-pix.types'
@@ -13,7 +13,7 @@ export function normalizeInterPem(value: string): string {
 }
 
 export function validateInterCredentials(
-  creds: GatewayPagamentoCredenciais,
+  creds: InterGatewayCredenciais,
 ): string | null {
   if (!creds.clientId?.trim()) {
     return 'Client ID não foi salvo no servidor. Cole novamente e salve.'
@@ -100,7 +100,7 @@ export function buildInterOAuthRequest(
 
 export async function requestInterOAuthToken(
   baseUrl: string,
-  creds: GatewayPagamentoCredenciais,
+  creds: InterGatewayCredenciais,
   timeoutMs: number,
   scope: string,
 ): Promise<InterOAuthTokenResponse> {

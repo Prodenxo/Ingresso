@@ -1,4 +1,7 @@
-import type { GatewayPagamentoCredenciais } from '../configuracoes/gateway-pagamento.types'
+import type {
+  InterGatewayCredenciais,
+  InfinityPayGatewayCredenciais,
+} from '../configuracoes/gateway-pagamento.types'
 
 export interface PaymentConnectionResult {
   ok: boolean
@@ -8,7 +11,7 @@ export interface PaymentConnectionResult {
 }
 
 export interface PixChargeParams {
-  creds: GatewayPagamentoCredenciais
+  creds: InterGatewayCredenciais
   pedidoId: string
   valor: number
   pedidoCodigo: string
@@ -24,7 +27,7 @@ export interface PixChargeResult {
 
 export interface PaymentProvider {
   testConnection(
-    creds: GatewayPagamentoCredenciais,
+    creds: InterGatewayCredenciais,
   ): Promise<PaymentConnectionResult>
 
   createPixCharge(params: PixChargeParams): Promise<PixChargeResult>
