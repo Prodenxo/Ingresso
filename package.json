@@ -1,5 +1,5 @@
 {
-  "name": "eventhub",
+  "name": "onith-eventos",
   "private": true,
   "scripts": {
     "dev": "powershell -NoProfile -Command \"Set-Location frontend; npm run dev\"",

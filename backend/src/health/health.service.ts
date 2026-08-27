@@ -5,7 +5,7 @@ export class HealthService {
   check() {
     return {
       status: 'ok',
-      service: 'eventhub-api',
+      service: 'onith-eventos-api',
       timestamp: new Date().toISOString(),
     }
   }

@@ -9,6 +9,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { getHomeRoute } from '@/lib/auth-roles'
+import { BRAND_NAME } from '@/lib/brand'
 import type { RegisterTipo } from '@/types/auth'
 
 const accountTypes: Array<{
@@ -98,7 +99,7 @@ export function RegisterForm() {
       <div className="glass-panel w-full max-w-xl rounded-2xl p-6 sm:p-8">
         <div className="mb-8 text-center">
           <p className="text-sm font-medium uppercase tracking-widest text-indigo-400">
-            EventHub
+            {BRAND_NAME}
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-white">
             Criar conta

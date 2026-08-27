@@ -52,7 +52,10 @@ export function formatEventDateBadge(value: string) {
   }
 }
 
-export function formatLocation(evento: EventoDisponivel): string | null {
+export function formatLocation(evento: {
+  cidade: string | null
+  estado: string | null
+}): string | null {
   const parts = [evento.cidade, evento.estado].filter(Boolean)
   return parts.length > 0 ? parts.join(' - ') : null
 }

@@ -71,7 +71,7 @@ export class InfinityPayProvider {
           {
             quantity: 1,
             price: 100,
-            description: 'Teste de conexão EventHub',
+            description: 'Teste de conexão Onith Eventos',
           },
         ],
       })

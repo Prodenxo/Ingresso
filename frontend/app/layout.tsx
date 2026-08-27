@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'EventHub — Gestão de Eventos',
-  description: 'Plataforma SaaS de gestão de eventos e venda de ingressos',
+  title: 'Onith Eventos — Gestão de Eventos',
+  description: 'Plataforma Onith Eventos para gestão de eventos e venda de ingressos',
 }
 
 function resolveRuntimeApiUrl(): string {
@@ -38,7 +38,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__EVENTHUB_API_URL__=${JSON.stringify(runtimeApiUrl)};`,
+            __html: `window.__ONITH_EVENTOS_API_URL__=${JSON.stringify(runtimeApiUrl)};`,
           }}
         />
       </head>

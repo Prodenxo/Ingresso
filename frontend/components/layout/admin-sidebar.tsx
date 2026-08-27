@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { getAdminNavItems } from '@/lib/admin-nav-items'
+import { BRAND_NAME } from '@/lib/brand'
 import { cn } from '@/lib/utils'
 
 export function AdminSidebar() {
@@ -16,7 +17,7 @@ export function AdminSidebar() {
     <aside className="glass-panel flex h-full w-64 shrink-0 flex-col rounded-2xl p-4">
       <div className="mb-8 px-2">
         <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
-          EventHub
+          {BRAND_NAME}
         </p>
         <h1 className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-xl font-semibold text-transparent">
           Painel Admin

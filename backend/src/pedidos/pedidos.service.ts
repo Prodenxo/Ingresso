@@ -344,7 +344,7 @@ export class PedidosService {
         },
       })
     } else {
-      pixCopiaCola = `00020126580014BR.GOV.BCB.PIX0136${pedido.codigo}5204000053039865802BR5925EventHub6009SAO PAULO62070503***6304ABCD`
+      pixCopiaCola = `00020126580014BR.GOV.BCB.PIX0136${pedido.codigo}5204000053039865802BR5925Onith Eventos6009SAO PAULO62070503***6304ABCD`
     }
 
     return {
@@ -1241,7 +1241,7 @@ export class PedidosService {
 
           const token = gerarTokenIngresso()
           const tokenHash = await hashToken(token)
-          const codigo = `EH-${createHash('sha256').update(token).digest('hex').slice(0, 12).toUpperCase()}`
+          const codigo = `OE-${createHash('sha256').update(token).digest('hex').slice(0, 12).toUpperCase()}`
 
           const ingresso = await tx.ingresso.create({
             data: {

@@ -8,6 +8,7 @@ import {
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
+// Salt legado — não alterar (quebra credenciais de gateway já criptografadas)
 const KEY_SALT = 'eventhub-payments-v1'
 
 function resolveEncryptionKey(): Buffer {

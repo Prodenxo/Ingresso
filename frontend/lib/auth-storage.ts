@@ -1,5 +1,7 @@
-const ACCESS_TOKEN_KEY = 'eventhub_access_token'
-const REFRESH_TOKEN_KEY = 'eventhub_refresh_token'
+import { BRAND_STORAGE_PREFIX } from '@/lib/brand'
+
+const ACCESS_TOKEN_KEY = `${BRAND_STORAGE_PREFIX}_access_token`
+const REFRESH_TOKEN_KEY = `${BRAND_STORAGE_PREFIX}_refresh_token`
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') {

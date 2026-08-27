@@ -2,13 +2,13 @@ import { getClientApiUrl } from '@/lib/api-proxy-config'
 
 declare global {
   interface Window {
-    __EVENTHUB_API_URL__?: string
+    __ONITH_EVENTOS_API_URL__?: string
   }
 }
 
 export function getApiUrl(): string {
-  if (typeof window !== 'undefined' && window.__EVENTHUB_API_URL__) {
-    return window.__EVENTHUB_API_URL__.trim().replace(/\/$/, '')
+  if (typeof window !== 'undefined' && window.__ONITH_EVENTOS_API_URL__) {
+    return window.__ONITH_EVENTOS_API_URL__.trim().replace(/\/$/, '')
   }
 
   return getClientApiUrl()

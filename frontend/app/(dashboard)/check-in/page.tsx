@@ -277,7 +277,7 @@ export default function CheckInPage() {
                   onChange={(event) =>
                     setCodigoManual(event.target.value.toUpperCase())
                   }
-                  placeholder="EH-XXXXXXXXXXXX"
+                  placeholder="OE-XXXXXXXXXXXX"
                   autoComplete="off"
                 />
               </div>

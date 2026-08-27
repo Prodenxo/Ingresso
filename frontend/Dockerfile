@@ -17,7 +17,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
-ENV API_PROXY_TARGET=https://auto-eventhub-backend.4tnf3f.easypanel.host/api
+# Onith Eventos — proxy da API no build Docker (ajuste para seu backend)
+ENV API_PROXY_TARGET=https://api.onith.com.br/api
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./

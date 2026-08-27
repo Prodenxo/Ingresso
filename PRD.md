@@ -2,7 +2,7 @@
 
 ## Nome do Projeto
 
-**EventHub** (nome temporário)
+**Onith Eventos**
 
 ---
 

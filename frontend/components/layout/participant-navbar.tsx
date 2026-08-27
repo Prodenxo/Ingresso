@@ -4,6 +4,7 @@ import { Avatar, Button } from '@heroui/react'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { getEmpresasVinculadasLabel } from '@/lib/participant-nav-items'
+import { BRAND_NAME } from '@/lib/brand'
 
 interface ParticipantNavbarProps {
   title: string
@@ -27,7 +28,7 @@ export function ParticipantNavbar({ title, subtitle }: ParticipantNavbarProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-500 md:hidden">
-            EventHub
+            {BRAND_NAME}
           </p>
           <h2 className="truncate text-base font-semibold text-white md:text-lg">
             {title}

@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'eventhub:link-indicacao'
+import { BRAND_STORAGE_PREFIX } from '@/lib/brand'
+
+const STORAGE_KEY = `${BRAND_STORAGE_PREFIX}:link-indicacao`
 
 export function saveLinkIndicacaoSlug(slug: string): void {
   if (typeof window === 'undefined') return
