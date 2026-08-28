@@ -3,27 +3,77 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { StatusEvento, StatusPedido } from '@prisma/client'
+import { StatusEvento, StatusLote, StatusPedido } from '@prisma/client'
 import { EmpresaAccessService } from '../common/services/empresa-access.service'
 import { slugify } from '../common/utils/slug'
 import { PrismaService } from '../prisma/prisma.service'
-import { CreateLinkIndicacaoDto, UpdateLinkIndicacaoDto } from './dto/create-link-indicacao.dto'
+import {
+  CreateLinkIndicacaoDto,
+  UpdateLinkIndicacaoDto,
+} from './dto/create-link-indicacao.dto'
+import { aplicarDescontoIndicacao } from './link-indicacao-pricing'
+import { MembrosService } from '../membros/membros.service'
+
+const linkInclude = {
+  lote: {
+    select: {
+      id: true,
+      nome: true,
+      preco: true,
+    },
+  },
+} as const
+
+export interface LinkIndicacaoCheckout {
+  id: string
+  loteId: string | null
+  descontoPercentual: number | null
+}
+
+type LinkComLote = {
+  descontoPercentual: { toString(): string } | number | null
+  lote?: {
+    id: string
+    nome: string
+    preco: { toString(): string } | number
+  } | null
+} & Record<string, unknown>
+
+function serializarLink<T extends LinkComLote>(link: T) {
+  return {
+    ...link,
+    descontoPercentual:
+      link.descontoPercentual != null
+        ? Number(link.descontoPercentual)
+        : null,
+    lote: link.lote
+      ? {
+          ...link.lote,
+          preco: Number(link.lote.preco),
+        }
+      : link.lote,
+  }
+}
 
 @Injectable()
 export class LinksIndicacaoService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly empresaAccess: EmpresaAccessService,
+    private readonly membrosService: MembrosService,
   ) {}
 
   async listByEvento(eventoId: string, usuarioId: string) {
     const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
     await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
 
-    return this.prisma.linkIndicacao.findMany({
-      where: { eventoId, empresaId },
-      orderBy: { createdAt: 'desc' },
-    })
+    return this.prisma.linkIndicacao
+      .findMany({
+        where: { eventoId, empresaId },
+        include: linkInclude,
+        orderBy: { createdAt: 'desc' },
+      })
+      .then((links) => links.map(serializarLink))
   }
 
   async create(eventoId: string, usuarioId: string, dto: CreateLinkIndicacaoDto) {
@@ -48,27 +98,45 @@ export class LinksIndicacaoService {
       )
     }
 
-    return this.prisma.linkIndicacao.create({
+    await this.validarLoteDoEvento(dto.loteId, eventoId, empresaId)
+
+    const created = await this.prisma.linkIndicacao.create({
       data: {
         empresaId,
         eventoId,
         nome: dto.nome.trim(),
         slug,
+        loteId: dto.loteId,
+        descontoPercentual: dto.descontoPercentual,
       },
+      include: linkInclude,
     })
+
+    return serializarLink(created)
   }
 
   async update(linkId: string, usuarioId: string, dto: UpdateLinkIndicacaoDto) {
     const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
     const link = await this.findOwnedLink(linkId, empresaId)
 
-    return this.prisma.linkIndicacao.update({
+    if (dto.loteId !== undefined) {
+      await this.validarLoteDoEvento(dto.loteId, link.eventoId, empresaId)
+    }
+
+    const updated = await this.prisma.linkIndicacao.update({
       where: { id: link.id },
       data: {
         ...(dto.nome !== undefined ? { nome: dto.nome.trim() } : {}),
         ...(dto.ativo !== undefined ? { ativo: dto.ativo } : {}),
+        ...(dto.loteId !== undefined ? { loteId: dto.loteId } : {}),
+        ...(dto.descontoPercentual !== undefined
+          ? { descontoPercentual: dto.descontoPercentual }
+          : {}),
       },
+      include: linkInclude,
     })
+
+    return serializarLink(updated)
   }
 
   async remove(linkId: string, usuarioId: string) {
@@ -103,6 +171,19 @@ export class LinksIndicacaoService {
             status: true,
           },
         },
+        lote: {
+          select: {
+            id: true,
+            nome: true,
+            preco: true,
+          },
+        },
+        empresa: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
       },
     })
 
@@ -115,11 +196,25 @@ export class LinksIndicacaoService {
       data: { cliques: { increment: 1 } },
     })
 
+    const lotePreco = link.lote ? Number(link.lote.preco) : null
+    const descontoPercentual = link.descontoPercentual
+      ? Number(link.descontoPercentual)
+      : null
+
     return {
       slug: link.slug,
       nome: link.nome,
       eventoId: link.eventoId,
       eventoNome: link.evento.nome,
+      empresaNome: link.empresa.nome,
+      loteId: link.loteId,
+      loteNome: link.lote?.nome ?? null,
+      lotePreco,
+      descontoPercentual,
+      precoComDesconto:
+        lotePreco !== null
+          ? aplicarDescontoIndicacao(lotePreco, descontoPercentual)
+          : null,
     }
   }
 
@@ -129,6 +224,7 @@ export class LinksIndicacaoService {
 
     const links = await this.prisma.linkIndicacao.findMany({
       where: { eventoId, empresaId },
+      include: linkInclude,
       orderBy: { createdAt: 'desc' },
     })
 
@@ -165,6 +261,11 @@ export class LinksIndicacaoService {
             ativo: link.ativo,
             cliques: link.cliques,
             createdAt: link.createdAt,
+            loteId: link.loteId,
+            loteNome: link.lote?.nome ?? null,
+            descontoPercentual: link.descontoPercentual
+              ? Number(link.descontoPercentual)
+              : null,
           },
           metricas: {
             cliques: link.cliques,
@@ -196,7 +297,8 @@ export class LinksIndicacaoService {
     slug: string | undefined,
     empresaId: string,
     eventoId: string,
-  ): Promise<string | null> {
+    loteId: string,
+  ): Promise<LinkIndicacaoCheckout | null> {
     if (!slug?.trim()) {
       return null
     }
@@ -215,7 +317,71 @@ export class LinksIndicacaoService {
       throw new BadRequestException('Link de indicação inválido ou inativo')
     }
 
-    return link.id
+    if (link.loteId && link.loteId !== loteId) {
+      throw new BadRequestException(
+        'Este link de indicação é válido apenas para o ingresso vinculado a ele',
+      )
+    }
+
+    return {
+      id: link.id,
+      loteId: link.loteId,
+      descontoPercentual: link.descontoPercentual
+        ? Number(link.descontoPercentual)
+        : null,
+    }
+  }
+
+  calcularPrecoUnitarioComLink(
+    precoLote: number,
+    link: LinkIndicacaoCheckout | null,
+  ): number {
+    if (!link) {
+      return precoLote
+    }
+
+    return aplicarDescontoIndicacao(precoLote, link.descontoPercentual)
+  }
+
+  async vincularParticipante(slugParam: string, usuarioId: string) {
+    const slug = slugify(slugParam)
+
+    const link = await this.prisma.linkIndicacao.findFirst({
+      where: { slug, ativo: true },
+      include: {
+        evento: {
+          select: { status: true },
+        },
+      },
+    })
+
+    if (!link || link.evento.status !== StatusEvento.PUBLICADO) {
+      throw new NotFoundException('Link de indicação inválido ou indisponível')
+    }
+
+    return this.membrosService.vincularPorEmpresaId(usuarioId, link.empresaId)
+  }
+
+  private async validarLoteDoEvento(
+    loteId: string,
+    eventoId: string,
+    empresaId: string,
+  ) {
+    const lote = await this.prisma.lote.findFirst({
+      where: { id: loteId, eventoId, empresaId },
+    })
+
+    if (!lote) {
+      throw new BadRequestException(
+        'Tipo de ingresso inválido para este evento',
+      )
+    }
+
+    if (lote.status !== StatusLote.ATIVO) {
+      throw new BadRequestException(
+        'O tipo de ingresso selecionado não está ativo',
+      )
+    }
   }
 
   private async findOwnedLink(linkId: string, empresaId: string) {

@@ -9,6 +9,11 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { getHomeRoute } from '@/lib/auth-roles'
+import {
+  buildParticipanteLoginUrl,
+  getLinkIndicacao,
+} from '@/lib/link-indicacao-storage'
+import { parsePercentual } from '@/lib/preco-promocional'
 import { BrandAuthHeader } from '@/components/brand/brand-logo'
 import type { RegisterTipo } from '@/types/auth'
 
@@ -36,6 +41,11 @@ export function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect')
+  const isParticipanteFlow =
+    searchParams.get('participante') === '1' ||
+    redirectTo === '/ingressos' ||
+    redirectTo?.startsWith('/ingressos')
+  const linkIndicacao = isParticipanteFlow ? getLinkIndicacao() : null
   const { register, user, isAuthenticated, isLoading } = useAuth()
   const [tipo, setTipo] = useState<RegisterTipo>('usuario')
   const [form, setForm] = useState({
@@ -50,9 +60,17 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const loginHref = redirectTo
-    ? `/login?redirect=${encodeURIComponent(redirectTo)}`
-    : '/login'
+  const loginHref = isParticipanteFlow
+    ? buildParticipanteLoginUrl()
+    : redirectTo
+      ? `/login?redirect=${encodeURIComponent(redirectTo)}`
+      : '/login'
+
+  useEffect(() => {
+    if (isParticipanteFlow) {
+      setTipo('usuario')
+    }
+  }, [isParticipanteFlow])
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
@@ -100,13 +118,35 @@ export function RegisterForm() {
         <div className="mb-8 text-center">
           <BrandAuthHeader />
           <h1 className="mt-4 text-2xl font-semibold text-white">
-            Criar conta
+            {isParticipanteFlow ? 'Criar conta para comprar' : 'Criar conta'}
           </h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Escolha como deseja se cadastrar na plataforma
+            {isParticipanteFlow ? (
+              linkIndicacao?.eventoNome ? (
+                <>
+                  Cadastre-se para comprar ingresso de{' '}
+                  <span className="text-white">{linkIndicacao.eventoNome}</span>
+                  {linkIndicacao.loteNome ? (
+                    <>
+                      {' '}
+                      ({linkIndicacao.loteNome}
+                      {parsePercentual(linkIndicacao.descontoPercentual) > 0
+                        ? ` · ${parsePercentual(linkIndicacao.descontoPercentual)}% off`
+                        : ''}
+                      )
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                'Cadastre-se como participante para ver e comprar ingressos'
+              )
+            ) : (
+              'Escolha como deseja se cadastrar na plataforma'
+            )}
           </p>
         </div>
 
+        {!isParticipanteFlow ? (
         <div
           className={cn(
             'mx-auto mb-6 grid w-full grid-cols-2 gap-3',
@@ -149,6 +189,7 @@ export function RegisterForm() {
             )
           })}
         </div>
+        ) : null}
 
         <form
           className={cn(
@@ -279,9 +320,11 @@ export function RegisterForm() {
           >
             {isSubmitting
               ? 'Criando conta...'
-              : tipo === 'empresa'
-                ? 'Criar conta da empresa'
-                : 'Criar conta de usuário'}
+              : isParticipanteFlow
+                ? 'Criar conta e continuar'
+                : tipo === 'empresa'
+                  ? 'Criar conta da empresa'
+                  : 'Criar conta de usuário'}
           </Button>
         </form>
 

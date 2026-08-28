@@ -276,6 +276,7 @@ model Lote {
   evento           Evento     @relation(fields: [eventoId], references: [id], onDelete: Cascade)
   pedidoItens      PedidoItem[]
   ingressos        Ingresso[]
+  linksIndicacao   LinkIndicacao[]
 
   @@index([empresaId])
   @@index([eventoId])
@@ -313,22 +314,26 @@ model Pedido {
 }
 
 model LinkIndicacao {
-  id        String   @id @default(uuid())
-  empresaId String   @map("empresa_id")
-  eventoId  String   @map("evento_id")
-  nome      String
-  slug      String   @unique
-  ativo     Boolean  @default(true)
-  cliques   Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid())
+  empresaId          String   @map("empresa_id")
+  eventoId           String   @map("evento_id")
+  loteId             String?  @map("lote_id")
+  descontoPercentual Decimal? @map("desconto_percentual") @db.Decimal(5, 2)
+  nome               String
+  slug               String   @unique
+  ativo              Boolean  @default(true)
+  cliques            Int      @default(0)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   evento    Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  lote      Lote?    @relation(fields: [loteId], references: [id], onDelete: SetNull)
   pedidos   Pedido[]
 
   @@index([empresaId])
   @@index([eventoId])
+  @@index([loteId])
   @@map("links_indicacao")
 }
 

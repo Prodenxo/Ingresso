@@ -26,6 +26,8 @@ interface CheckoutPixModalProps {
   loteId: string
   loteNome: string
   preco: number
+  precoOriginal?: number
+  descontoPercentual?: number | null
   limitePorCompra: number
   disponiveis: number
   formasPagamento?: FormaPagamentoDisponivel[]
@@ -41,6 +43,8 @@ export function CheckoutPixModal({
   loteId,
   loteNome,
   preco,
+  precoOriginal,
+  descontoPercentual,
   limitePorCompra,
   disponiveis,
   formasPagamento = ['PIX', 'BOLETO'],
@@ -475,7 +479,26 @@ export function CheckoutPixModal({
 
             <p className="text-sm text-zinc-300">
               Total:{' '}
-              <span className="font-medium text-white">{formatCurrency(total)}</span>
+              {precoOriginal && precoOriginal > preco ? (
+                <>
+                  <span className="text-zinc-500 line-through">
+                    {formatCurrency(precoOriginal * quantidade)}
+                  </span>{' '}
+                  <span className="font-medium text-emerald-300">
+                    {formatCurrency(total)}
+                  </span>
+                  {descontoPercentual && descontoPercentual > 0 ? (
+                    <span className="text-indigo-300">
+                      {' '}
+                      ({descontoPercentual}% off)
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="font-medium text-white">
+                  {formatCurrency(total)}
+                </span>
+              )}
             </p>
 
             <Button

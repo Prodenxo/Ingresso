@@ -1,10 +1,15 @@
+import { Type } from 'class-transformer'
 import {
   IsBoolean,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator'
 
@@ -23,6 +28,15 @@ export class CreateLinkIndicacaoDto {
     message: 'Use apenas letras, números e hífens',
   })
   slug!: string
+
+  @IsUUID()
+  loteId!: string
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(99.99)
+  descontoPercentual!: number
 }
 
 export class UpdateLinkIndicacaoDto {
@@ -35,4 +49,15 @@ export class UpdateLinkIndicacaoDto {
   @IsOptional()
   @IsBoolean()
   ativo?: boolean
+
+  @IsOptional()
+  @IsUUID()
+  loteId?: string
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(99.99)
+  descontoPercentual?: number
 }

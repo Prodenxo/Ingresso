@@ -2,13 +2,17 @@
 
 import { Button, Card, Chip } from '@heroui/react'
 import { ChevronDown, ChevronUp, Copy, Link2, Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FormField } from '@/components/ui/form-field'
 import { ApiError, apiFetch } from '@/lib/api-client'
 import {
   buildLinkIndicacaoUrl,
+  calcPrecoComDescontoIndicacao,
 } from '@/lib/link-indicacao-storage'
 import { formatEventDate } from '@/lib/ingressos-utils'
+import { formatDescontoPercentual, parsePercentual } from '@/lib/preco-promocional'
+import { formatCurrency } from '@/lib/utils'
+import type { LoteAdmin } from '@/types/eventos'
 import type {
   LinkIndicacao,
   LinkIndicacaoRelatorioItem,
@@ -17,13 +21,7 @@ import type {
 interface EventoLinksIndicacaoPanelProps {
   eventoId: string
   eventoNome: string
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+  lotes: LoteAdmin[]
 }
 
 function statusPedidoLabel(status: string): string {
@@ -41,7 +39,13 @@ function statusPedidoLabel(status: string): string {
 export function EventoLinksIndicacaoPanel({
   eventoId,
   eventoNome,
+  lotes,
 }: EventoLinksIndicacaoPanelProps) {
+  const lotesAtivos = useMemo(
+    () => lotes.filter((lote) => lote.status === 'ATIVO'),
+    [lotes],
+  )
+
   const [links, setLinks] = useState<LinkIndicacao[]>([])
   const [relatorio, setRelatorio] = useState<LinkIndicacaoRelatorioItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -51,11 +55,22 @@ export function EventoLinksIndicacaoPanel({
   const [origin, setOrigin] = useState('')
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ nome: '', slug: '' })
+  const [form, setForm] = useState({
+    nome: '',
+    slug: '',
+    loteId: '',
+    descontoPercentual: '0',
+  })
 
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
+
+  useEffect(() => {
+    if (lotesAtivos.length === 1 && !form.loteId) {
+      setForm((current) => ({ ...current, loteId: lotesAtivos[0].id }))
+    }
+  }, [form.loteId, lotesAtivos])
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -86,6 +101,12 @@ export function EventoLinksIndicacaoPanel({
     void loadData()
   }, [loadData])
 
+  const loteSelecionado = lotesAtivos.find((lote) => lote.id === form.loteId)
+  const descontoPreview = Number(form.descontoPercentual.replace(',', '.')) || 0
+  const precoComDescontoPreview = loteSelecionado
+    ? calcPrecoComDescontoIndicacao(loteSelecionado.preco, descontoPreview)
+    : null
+
   function getRelatorioItem(linkId: string) {
     return relatorio.find((item) => item.link.id === linkId)
   }
@@ -107,10 +128,17 @@ export function EventoLinksIndicacaoPanel({
         body: JSON.stringify({
           nome: form.nome.trim(),
           slug: form.slug.trim(),
+          loteId: form.loteId,
+          descontoPercentual: descontoPreview,
         }),
       })
 
-      setForm({ nome: '', slug: '' })
+      setForm({
+        nome: '',
+        slug: '',
+        loteId: lotesAtivos[0]?.id ?? '',
+        descontoPercentual: '0',
+      })
       setShowForm(false)
       setSuccess('Link de indicação criado')
       await loadData()
@@ -160,13 +188,14 @@ export function EventoLinksIndicacaoPanel({
         <div>
           <Card.Title className="text-white">Links de indicação</Card.Title>
           <Card.Description>
-            Gere links com palavra-chave (ex.: inquebravel) para rastrear quem
-            vendeu cada ingresso de {eventoNome}.
+            Gere links com palavra-chave, tipo de ingresso e desconto para
+            rastrear vendas de {eventoNome}.
           </Card.Description>
         </div>
         <Button
           variant={showForm ? 'ghost' : 'primary'}
           size="sm"
+          isDisabled={lotesAtivos.length === 0}
           onPress={() => setShowForm((current) => !current)}
         >
           <Plus className="size-4" aria-hidden />
@@ -175,6 +204,12 @@ export function EventoLinksIndicacaoPanel({
       </Card.Header>
 
       <Card.Content className="space-y-4">
+        {lotesAtivos.length === 0 ? (
+          <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            Publique ao menos um lote ativo antes de criar links de indicação.
+          </p>
+        ) : null}
+
         {error ? (
           <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
@@ -187,7 +222,7 @@ export function EventoLinksIndicacaoPanel({
           </p>
         ) : null}
 
-        {showForm ? (
+        {showForm && lotesAtivos.length > 0 ? (
           <form
             className="form-stack rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4"
             onSubmit={handleCreate}
@@ -210,8 +245,71 @@ export function EventoLinksIndicacaoPanel({
                 required
               />
             </div>
+
+            <div className="form-row-2">
+              <div className="space-y-2">
+                <label htmlFor="link-lote" className="text-sm text-zinc-300">
+                  Tipo de ingresso
+                </label>
+                <select
+                  id="link-lote"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white"
+                  value={form.loteId}
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, loteId: e.target.value }))
+                  }
+                  required
+                >
+                  <option value="" disabled>
+                    Selecione o lote
+                  </option>
+                  {lotesAtivos.map((lote) => (
+                    <option key={lote.id} value={lote.id}>
+                      {lote.nome} ({formatCurrency(lote.preco)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <FormField
+                label="Desconto (%)"
+                name="link-desconto"
+                type="number"
+                min={0}
+                max={99.99}
+                step={0.1}
+                value={form.descontoPercentual}
+                onChange={(e) =>
+                  setForm((c) => ({ ...c, descontoPercentual: e.target.value }))
+                }
+                placeholder="Ex.: 10"
+                required
+              />
+            </div>
+
+            {loteSelecionado && precoComDescontoPreview !== null ? (
+              <p className="text-xs text-zinc-400">
+                Preço com desconto:{' '}
+                <span className="font-medium text-emerald-300">
+                  {formatCurrency(precoComDescontoPreview)}
+                </span>
+                {descontoPreview > 0 ? (
+                  <>
+                    {' '}
+                    (de {formatCurrency(loteSelecionado.preco)},{' '}
+                    {formatDescontoPercentual(descontoPreview)}% off)
+                  </>
+                ) : (
+                  ' (sem desconto)'
+                )}
+              </p>
+            ) : null}
+
             <p className="text-xs text-zinc-500">
-              O link ficará: {origin ? buildLinkIndicacaoUrl(origin, form.slug || 'palavra-chave') : '/r/palavra-chave'}
+              O link ficará:{' '}
+              {origin
+                ? buildLinkIndicacaoUrl(origin, form.slug || 'palavra-chave')
+                : '/r/palavra-chave'}
             </p>
             <div className="flex justify-end">
               <Button type="submit" variant="primary" isDisabled={isCreating}>
@@ -233,6 +331,15 @@ export function EventoLinksIndicacaoPanel({
             const item = getRelatorioItem(link.id)
             const url = origin ? buildLinkIndicacaoUrl(origin, link.slug) : ''
             const isExpanded = expandedLinkId === link.id
+            const loteNome = link.lote?.nome ?? item?.link.loteNome
+            const desconto = parsePercentual(
+              link.descontoPercentual ?? item?.link.descontoPercentual,
+            )
+            const precoLote = link.lote?.preco
+            const precoFinal =
+              precoLote !== undefined && precoLote !== null
+                ? calcPrecoComDescontoIndicacao(precoLote, desconto)
+                : null
 
             return (
               <div
@@ -254,6 +361,33 @@ export function EventoLinksIndicacaoPanel({
                     <p className="mt-1 break-all font-mono text-sm text-indigo-300">
                       /r/{link.slug}
                     </p>
+                    {loteNome ? (
+                      <p className="mt-2 text-sm text-zinc-300">
+                        Ingresso:{' '}
+                        <span className="text-white">{loteNome}</span>
+                        {precoFinal !== null && precoLote !== undefined ? (
+                          <>
+                            {' '}
+                            ·{' '}
+                            {desconto && desconto > 0 ? (
+                              <>
+                                <span className="text-zinc-500 line-through">
+                                  {formatCurrency(precoLote)}
+                                </span>{' '}
+                                <span className="text-emerald-300">
+                                  {formatCurrency(precoFinal)}
+                                </span>{' '}
+                                <span className="text-indigo-300">
+                                  ({formatDescontoPercentual(desconto)}% off)
+                                </span>
+                              </>
+                            ) : (
+                              formatCurrency(precoLote)
+                            )}
+                          </>
+                        ) : null}
+                      </p>
+                    ) : null}
                     {item ? (
                       <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-400">
                         <span>{item.metricas.cliques} cliques</span>
@@ -353,8 +487,8 @@ export function EventoLinksIndicacaoPanel({
         {links.length > 0 ? (
           <p className="flex items-center gap-2 text-xs text-zinc-500">
             <Link2 className="size-3.5" aria-hidden />
-            Compartilhe o link /r/palavra-chave. Quem comprar por ele entra no
-            relatório deste evento.
+            Compartilhe o link /r/palavra-chave. O desconto vale apenas para o
+            ingresso vinculado.
           </p>
         ) : null}
       </Card.Content>

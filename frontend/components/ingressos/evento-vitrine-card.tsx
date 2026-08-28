@@ -10,11 +10,16 @@ import {
   formatLocation,
   getLoteNomeVitrine,
 } from '@/lib/ingressos-utils'
+import { calcPrecoComDescontoIndicacao } from '@/lib/link-indicacao-storage'
+import { formatDescontoPercentual } from '@/lib/preco-promocional'
+import { formatCurrency } from '@/lib/utils'
 import { resolveMediaUrl } from '@/lib/media-url'
+import type { LinkIndicacaoPublico } from '@/types/links-indicacao'
 import type { EventoDisponivel, LoteDisponivel } from '@/types/ingressos'
 
 interface EventoVitrineCardProps {
   evento: EventoDisponivel
+  linkIndicacao?: LinkIndicacaoPublico | null
   onComprar: (lote: LoteDisponivel) => void
 }
 
@@ -28,7 +33,11 @@ function shouldHideLoteNome(loteNome: string, eventoNome: string): boolean {
   return false
 }
 
-export function EventoVitrineCard({ evento, onComprar }: EventoVitrineCardProps) {
+export function EventoVitrineCard({
+  evento,
+  linkIndicacao = null,
+  onComprar,
+}: EventoVitrineCardProps) {
   const location = formatLocation(evento)
   const dateBadge = formatEventDateBadge(evento.dataInicio)
   const totalLotes = evento.lotes.length
@@ -112,11 +121,25 @@ export function EventoVitrineCard({ evento, onComprar }: EventoVitrineCardProps)
             const nomeVitrine = getLoteNomeVitrine(lote.nome, index, totalLotes)
             const hideLoteNome = shouldHideLoteNome(lote.nome, evento.nome)
             const showLoteLabel = nomeVitrine && !hideLoteNome
+            const temDescontoIndicacao =
+              linkIndicacao?.loteId === lote.id &&
+              (linkIndicacao.descontoPercentual ?? 0) > 0
+            const precoComDesconto = temDescontoIndicacao
+              ? linkIndicacao.precoComDesconto ??
+                calcPrecoComDescontoIndicacao(
+                  lote.preco,
+                  linkIndicacao.descontoPercentual,
+                )
+              : lote.preco
 
             return (
               <div
                 key={lote.id}
-                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className={`flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                  temDescontoIndicacao
+                    ? 'border-indigo-500/30 bg-indigo-500/10'
+                    : 'border-white/10 bg-white/5'
+                }`}
               >
                 <div className="min-w-0">
                   {showLoteLabel ? (
@@ -129,12 +152,31 @@ export function EventoVitrineCard({ evento, onComprar }: EventoVitrineCardProps)
                     </p>
                   )}
                   <div className={showLoteLabel ? 'mt-1' : 'mt-0.5'}>
-                    <LotePrecoPromo
-                      preco={lote.preco}
-                      precoDe={lote.precoDe}
-                      size="sm"
-                      showLabel
-                    />
+                    {temDescontoIndicacao ? (
+                      <div className="space-y-1">
+                        <p className="text-sm text-zinc-400">
+                          <span className="line-through">
+                            {formatCurrency(lote.preco)}
+                          </span>{' '}
+                          <span className="font-semibold text-emerald-300">
+                            {formatCurrency(precoComDesconto)}
+                          </span>
+                        </p>
+                        <p className="text-xs text-indigo-300">
+                          {formatDescontoPercentual(
+                            linkIndicacao.descontoPercentual ?? 0,
+                          )}
+                          % off via link de indicação
+                        </p>
+                      </div>
+                    ) : (
+                      <LotePrecoPromo
+                        preco={lote.preco}
+                        precoDe={lote.precoDe}
+                        size="sm"
+                        showLabel
+                      />
+                    )}
                   </div>
                   <p className="mt-1 text-xs text-zinc-500">
                     {lote.disponiveis} disponíveis

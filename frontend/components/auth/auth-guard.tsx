@@ -15,7 +15,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/login')
+      const returnTo =
+        typeof window !== 'undefined'
+          ? `${window.location.pathname}${window.location.search}`
+          : '/ingressos'
+
+      router.replace(`/login?redirect=${encodeURIComponent(returnTo)}`)
     }
   }, [isAuthenticated, isLoading, router])
 

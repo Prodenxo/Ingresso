@@ -182,6 +182,7 @@ export default function EventoDetalhePage() {
         <EventoLinksIndicacaoPanel
           eventoId={evento.id}
           eventoNome={evento.nome}
+          lotes={evento.lotes}
         />
       </div>
 

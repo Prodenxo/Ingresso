@@ -7,21 +7,26 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { ApiError } from '@/lib/api-client'
 import { getHomeRoute } from '@/lib/auth-roles'
+import { buildParticipanteRegisterUrl } from '@/lib/link-indicacao-storage'
 import { BrandAuthHeader } from '@/components/brand/brand-logo'
 
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect')
+  const isIngressosFlow =
+    redirectTo === '/ingressos' || redirectTo?.startsWith('/ingressos')
   const { login, user, isAuthenticated, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const registerHref = redirectTo
-    ? `/register?redirect=${encodeURIComponent(redirectTo)}`
-    : '/register'
+  const registerHref = isIngressosFlow
+    ? buildParticipanteRegisterUrl()
+    : redirectTo
+      ? `/register?redirect=${encodeURIComponent(redirectTo)}`
+      : '/register'
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
@@ -55,7 +60,9 @@ export function LoginForm() {
             Entrar na conta
           </h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Acesse o painel da sua empresa
+            {isIngressosFlow
+              ? 'Entre para ver e comprar ingressos com desconto'
+              : 'Acesse o painel da sua empresa'}
           </p>
         </div>
 

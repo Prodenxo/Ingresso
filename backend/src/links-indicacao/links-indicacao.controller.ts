@@ -15,6 +15,7 @@ import {
   CreateLinkIndicacaoDto,
   UpdateLinkIndicacaoDto,
 } from './dto/create-link-indicacao.dto'
+import { VincularLinkIndicacaoDto } from './dto/vincular-link-indicacao.dto'
 import { LinksIndicacaoService } from './links-indicacao.service'
 
 @Controller('links-indicacao')
@@ -24,6 +25,15 @@ export class LinksIndicacaoController {
   @Get('publico/:slug')
   resolverPublico(@Param('slug') slug: string) {
     return this.linksIndicacaoService.resolverPublico(slug)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('vincular')
+  vincularParticipante(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: VincularLinkIndicacaoDto,
+  ) {
+    return this.linksIndicacaoService.vincularParticipante(dto.slug, user.id)
   }
 
   @UseGuards(JwtAuthGuard)

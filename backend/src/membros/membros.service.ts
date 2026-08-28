@@ -54,6 +54,18 @@ export class MembrosService {
       throw new NotFoundException('Convite inválido ou expirado')
     }
 
+    return this.vincularPorEmpresaId(usuarioId, empresa.id)
+  }
+
+  async vincularPorEmpresaId(usuarioId: string, empresaId: string) {
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+    })
+
+    if (!empresa) {
+      throw new NotFoundException('Empresa não encontrada')
+    }
+
     const existente = await this.prisma.usuarioEmpresa.findUnique({
       where: {
         empresaId_usuarioId: {

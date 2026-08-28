@@ -3,7 +3,7 @@
 import { Button, Card, Chip } from '@heroui/react'
 import Link from 'next/link'
 import { ShoppingCart } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckoutPixModal } from '@/components/ingressos/checkout-pix-modal'
 import { EventoVitrineCard } from '@/components/ingressos/evento-vitrine-card'
@@ -12,9 +12,14 @@ import { EmpresasVinculadasCard } from '@/components/membros/empresas-vinculadas
 import { ParticipantShell } from '@/components/layout/participant-shell'
 import { useRequireParticipant } from '@/hooks/use-require-participant'
 import { apiFetch } from '@/lib/api-client'
-import { saveLinkIndicacaoSlug } from '@/lib/link-indicacao-storage'
+import {
+  calcPrecoComDescontoIndicacao,
+  getLinkIndicacao,
+  saveLinkIndicacao,
+} from '@/lib/link-indicacao-storage'
 import { getEmpresasMembro, temVinculoEmpresa } from '@/lib/auth-roles'
 import { buildCheckoutLoteLabel } from '@/lib/ingressos-utils'
+import type { LinkIndicacaoPublico } from '@/types/links-indicacao'
 import type { EventoDisponivel, FormaPagamentoDisponivel, LoteDisponivel } from '@/types/ingressos'
 
 interface CheckoutTarget {
@@ -23,6 +28,41 @@ interface CheckoutTarget {
   loteIndex: number
   totalLotes: number
   formasPagamento: FormaPagamentoDisponivel[]
+  precoCheckout: number
+  precoOriginal?: number
+  descontoPercentual?: number | null
+}
+
+function abrirCheckoutDoLink(
+  eventos: EventoDisponivel[],
+  link: LinkIndicacaoPublico,
+): CheckoutTarget | null {
+  if (!link.loteId) return null
+
+  for (const evento of eventos) {
+    if (evento.id !== link.eventoId) continue
+
+    const loteIndex = evento.lotes.findIndex((item) => item.id === link.loteId)
+    if (loteIndex < 0) continue
+
+    const lote = evento.lotes[loteIndex]
+    const precoCheckout =
+      link.precoComDesconto ??
+      calcPrecoComDescontoIndicacao(lote.preco, link.descontoPercentual)
+
+    return {
+      lote,
+      eventoNome: evento.nome,
+      loteIndex,
+      totalLotes: evento.lotes.length,
+      formasPagamento: evento.formasPagamento ?? ['PIX', 'BOLETO'],
+      precoCheckout,
+      precoOriginal: lote.preco,
+      descontoPercentual: link.descontoPercentual,
+    }
+  }
+
+  return null
 }
 
 export default function IngressosDisponiveisPage() {
@@ -30,9 +70,14 @@ export default function IngressosDisponiveisPage() {
   const searchParams = useSearchParams()
   const [disponiveis, setDisponiveis] = useState<EventoDisponivel[]>([])
   const [isFetching, setIsFetching] = useState(true)
+  const [linkIndicacao, setLinkIndicacao] = useState<LinkIndicacaoPublico | null>(
+    null,
+  )
   const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget | null>(
     null,
   )
+  const [isBootstrapping, setIsBootstrapping] = useState(true)
+  const autoCheckoutDoneRef = useRef(false)
 
   const loadDisponiveis = useCallback(async () => {
     setIsFetching(true)
@@ -48,17 +93,78 @@ export default function IngressosDisponiveisPage() {
   }, [])
 
   useEffect(() => {
-    const ref = searchParams.get('ref')
-    if (ref?.trim()) {
-      saveLinkIndicacaoSlug(ref)
+    async function resolverRefParam() {
+      const ref = searchParams.get('ref')?.trim()
+      if (!ref) {
+        setLinkIndicacao(getLinkIndicacao())
+        return
+      }
+
+      try {
+        const data = await apiFetch<LinkIndicacaoPublico>(
+          `/links-indicacao/publico/${ref}`,
+        )
+        saveLinkIndicacao(data)
+        setLinkIndicacao(data)
+      } catch {
+        setLinkIndicacao(getLinkIndicacao())
+      }
     }
+
+    void resolverRefParam()
   }, [searchParams])
 
   useEffect(() => {
-    if (isReady) {
-      void loadDisponiveis()
+    if (typeof window === 'undefined') return
+    if (searchParams.get('ref')?.trim()) return
+
+    setLinkIndicacao(getLinkIndicacao())
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!isReady) return
+
+    async function bootstrap() {
+      setIsBootstrapping(true)
+
+      try {
+        const link = getLinkIndicacao()
+        if (link?.slug) {
+          try {
+            await apiFetch('/links-indicacao/vincular', {
+              method: 'POST',
+              body: JSON.stringify({ slug: link.slug }),
+            })
+            await refreshUser()
+          } catch {
+            // link inválido ou vínculo já existente
+          }
+        }
+      } finally {
+        await loadDisponiveis()
+        setIsBootstrapping(false)
+      }
     }
-  }, [isReady, loadDisponiveis])
+
+    void bootstrap()
+  }, [isReady, loadDisponiveis, refreshUser])
+
+  useEffect(() => {
+    if (
+      autoCheckoutDoneRef.current ||
+      !linkIndicacao?.loteId ||
+      disponiveis.length === 0 ||
+      checkoutTarget
+    ) {
+      return
+    }
+
+    const target = abrirCheckoutDoLink(disponiveis, linkIndicacao)
+    if (target) {
+      autoCheckoutDoneRef.current = true
+      setCheckoutTarget(target)
+    }
+  }, [checkoutTarget, disponiveis, linkIndicacao])
 
   if (!isReady) {
     return null
@@ -75,7 +181,27 @@ export default function IngressosDisponiveisPage() {
           : 'Vincule-se a uma empresa para ver eventos exclusivos'
       }
     >
-      {!vinculado ? (
+      {linkIndicacao?.loteNome && linkIndicacao.descontoPercentual ? (
+        <Card className="glass-panel mb-4 rounded-2xl border-indigo-500/20 bg-indigo-500/5 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip size="sm" variant="soft" color="accent">
+              Link de indicação
+            </Chip>
+            <p className="text-sm text-zinc-300">
+              Desconto de {linkIndicacao.descontoPercentual}% no ingresso{' '}
+              <span className="font-medium text-white">
+                {linkIndicacao.loteNome}
+              </span>
+            </p>
+          </div>
+        </Card>
+      ) : null}
+
+      {!vinculado && isBootstrapping ? (
+        <Card className="glass-panel rounded-2xl border-white/10 p-6">
+          <p className="text-sm text-zinc-400">Preparando seu acesso aos ingressos...</p>
+        </Card>
+      ) : !vinculado ? (
         <div className="mx-auto max-w-lg space-y-4">
           <Card className="glass-panel rounded-2xl border-white/10 p-6 text-center">
             <h3 className="text-lg font-medium text-white">
@@ -98,7 +224,7 @@ export default function IngressosDisponiveisPage() {
             }}
           />
         </div>
-      ) : isFetching ? (
+      ) : isFetching || isBootstrapping ? (
         <Card className="glass-panel rounded-2xl border-white/10 p-6">
           <p className="text-sm text-zinc-400">Carregando eventos...</p>
         </Card>
@@ -126,8 +252,22 @@ export default function IngressosDisponiveisPage() {
             <EventoVitrineCard
               key={evento.id}
               evento={evento}
+              linkIndicacao={
+                linkIndicacao?.eventoId === evento.id ? linkIndicacao : null
+              }
               onComprar={(lote) => {
                 const loteIndex = evento.lotes.findIndex((item) => item.id === lote.id)
+                const aplicaDesconto =
+                  linkIndicacao?.eventoId === evento.id &&
+                  linkIndicacao.loteId === lote.id
+
+                const precoCheckout = aplicaDesconto
+                  ? linkIndicacao.precoComDesconto ??
+                    calcPrecoComDescontoIndicacao(
+                      lote.preco,
+                      linkIndicacao.descontoPercentual,
+                    )
+                  : lote.preco
 
                 setCheckoutTarget({
                   lote,
@@ -135,6 +275,11 @@ export default function IngressosDisponiveisPage() {
                   loteIndex: loteIndex >= 0 ? loteIndex : 0,
                   totalLotes: evento.lotes.length,
                   formasPagamento: evento.formasPagamento ?? ['PIX', 'BOLETO'],
+                  precoCheckout,
+                  precoOriginal: aplicaDesconto ? lote.preco : undefined,
+                  descontoPercentual: aplicaDesconto
+                    ? linkIndicacao.descontoPercentual
+                    : undefined,
                 })
               }}
             />
@@ -151,7 +296,9 @@ export default function IngressosDisponiveisPage() {
             checkoutTarget.loteIndex,
             checkoutTarget.totalLotes,
           )}
-          preco={checkoutTarget.lote.preco}
+          preco={checkoutTarget.precoCheckout}
+          precoOriginal={checkoutTarget.precoOriginal}
+          descontoPercentual={checkoutTarget.descontoPercentual}
           limitePorCompra={checkoutTarget.lote.limitePorCompra}
           disponiveis={checkoutTarget.lote.disponiveis}
           formasPagamento={checkoutTarget.formasPagamento}

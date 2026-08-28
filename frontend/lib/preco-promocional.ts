@@ -52,8 +52,19 @@ export function calcPrecoDeFromDesconto(
   return Math.round(precoDe * 100) / 100
 }
 
-export function formatDescontoPercentual(percentual: number): string {
-  return Number.isInteger(percentual)
-    ? String(percentual)
-    : percentual.toFixed(1).replace(/\.0$/, '')
+export function parsePercentual(
+  value: number | string | null | undefined,
+): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function formatDescontoPercentual(
+  percentual: number | string | null | undefined,
+): string {
+  const value = parsePercentual(percentual)
+
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(1).replace(/\.0$/, '')
 }

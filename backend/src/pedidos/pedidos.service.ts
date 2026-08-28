@@ -124,12 +124,22 @@ export class PedidosService {
 
     const metodo = dto.metodo ?? 'PIX'
 
-    const linkIndicacaoId =
+    const linkIndicacao =
       await this.linksIndicacaoService.resolverLinkParaCheckout(
         dto.linkIndicacaoSlug,
         lote.empresaId,
         lote.eventoId,
+        lote.id,
       )
+
+    const linkIndicacaoId = linkIndicacao?.id ?? null
+    const precoUnitarioBase = Number(lote.preco)
+    const precoUnitario =
+      this.linksIndicacaoService.calcularPrecoUnitarioComLink(
+        precoUnitarioBase,
+        linkIndicacao,
+      )
+    const subtotal = precoUnitario * dto.quantidade
 
     const gatewayConfig = await this.prisma.empresaGatewayPagamento.findUnique({
       where: { empresaId: lote.empresaId },
@@ -155,8 +165,8 @@ export class PedidosService {
         usuario,
         dto,
         gatewayConfig,
-        precoUnitario: Number(lote.preco),
-        subtotal: Number(lote.preco) * dto.quantidade,
+        precoUnitario,
+        subtotal,
         linkIndicacaoId,
         participantesIngresso: this.montarParticipantesIngresso(
           usuario,
@@ -173,9 +183,7 @@ export class PedidosService {
         throw new BadRequestException('CPF do comprador é obrigatório e deve ser válido para boleto')
       }
 
-      const subtotalBoleto = Number(lote.preco) * dto.quantidade
-
-      if (subtotalBoleto < INTER_BOLETO_VALOR_MINIMO) {
+      if (subtotal < INTER_BOLETO_VALOR_MINIMO) {
         throw new BadRequestException(
           `Valor mínimo para boleto é R$ ${INTER_BOLETO_VALOR_MINIMO.toFixed(2).replace('.', ',')}`,
         )
@@ -189,8 +197,6 @@ export class PedidosService {
       dto.participantesAdicionais,
     )
 
-    const precoUnitario = Number(lote.preco)
-    const subtotal = precoUnitario * dto.quantidade
     const codigo = gerarCodigoPedido()
     const expiraEm =
       metodo === 'BOLETO'
