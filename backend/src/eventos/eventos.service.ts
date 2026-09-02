@@ -22,6 +22,7 @@ import { UpdateLoteDto } from './dto/update-lote.dto';
 import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
 import { MembrosService } from '../membros/membros.service';
+import { EventosMediaService } from './eventos-media.service';
 
 const eventoAdminSelect = {
   id: true,
