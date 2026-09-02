@@ -73,17 +73,15 @@ export function EventoCompartilharPanel({
                 <Copy className="size-3.5" aria-hidden />
                 {copied ? 'Copiado!' : 'Copiar link'}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                as="a"
+              <a
                 href={publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-zinc-300 transition hover:bg-white/5 hover:text-white"
               >
                 <ExternalLink className="size-3.5" aria-hidden />
                 Abrir página
-              </Button>
+              </a>
             </>
           ) : null}
         </div>
