@@ -40,12 +40,43 @@ async function bootstrap() {
     corsOrigins.push(frontendUrl)
   }
 
+  const allowVercelOrigins = process.env.CORS_ALLOW_VERCEL !== 'false'
+
+  const isOriginAllowed = (origin?: string): boolean => {
+    if (!origin) return true
+
+    const normalized = normalizeOrigin(origin)
+    if (corsOrigins.includes(normalized)) return true
+
+    if (allowVercelOrigins) {
+      try {
+        const { hostname } = new URL(normalized)
+        if (hostname.endsWith('.vercel.app')) return true
+      } catch {
+        return false
+      }
+    }
+
+    return false
+  }
+
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error(`Origem bloqueada pelo CORS: ${origin ?? 'desconhecida'}`))
+    },
     credentials: true,
   })
 
-  console.log(`CORS habilitado para: ${corsOrigins.join(', ')}`)
+  console.log(
+    `CORS habilitado para: ${corsOrigins.join(', ')}${
+      allowVercelOrigins ? ' + *.vercel.app' : ''
+    }`,
+  )
 
   const port = Number(process.env.PORT ?? 3001)
   console.log(`Uploads em: ${uploadsRoot}`)
