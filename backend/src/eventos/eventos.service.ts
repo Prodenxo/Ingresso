@@ -334,11 +334,13 @@ export class EventosService {
     if (dto.formato !== undefined) data.formato = dto.formato;
     if (dto.capacidade !== undefined) data.capacidade = dto.capacidade;
 
-    return this.prisma.evento.update({
-      where: { id: eventoId },
-      data,
-      select: eventoAdminSelect,
-    });
+    return this.sanitizeEventoMedia(
+      await this.prisma.evento.update({
+        where: { id: eventoId },
+        data,
+        select: eventoAdminSelect,
+      }),
+    );
   }
 
   async publicar(eventoId: string, usuarioId: string) {
@@ -594,14 +596,45 @@ export class EventosService {
 
     const imagemUrl = await this.mediaService.saveFlyer(file, evento.imagemUrl);
 
-    return this.prisma.evento.update({
+    const updated = await this.prisma.evento.update({
       where: { id: eventoId },
       data: {
         imagemUrl,
-        bannerUrl: imagemUrl,
       },
       select: eventoAdminSelect,
     });
+
+    return this.sanitizeEventoMedia(updated);
+  }
+
+  async uploadBanner(
+    eventoId: string,
+    usuarioId: string,
+    file: Express.Multer.File,
+  ) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
+
+    const evento = await this.prisma.evento.findFirst({
+      where: { id: eventoId, empresaId },
+      select: { bannerUrl: true },
+    });
+
+    if (!evento) {
+      throw new NotFoundException('Evento não encontrado');
+    }
+
+    const bannerUrl = await this.mediaService.saveFlyer(file, evento.bannerUrl);
+
+    const updated = await this.prisma.evento.update({
+      where: { id: eventoId },
+      data: {
+        bannerUrl,
+      },
+      select: eventoAdminSelect,
+    });
+
+    return this.sanitizeEventoMedia(updated);
   }
 
   async removeFlyer(eventoId: string, usuarioId: string) {
@@ -610,7 +643,7 @@ export class EventosService {
 
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
-      select: { imagemUrl: true, bannerUrl: true },
+      select: { imagemUrl: true },
     });
 
     if (!evento) {
@@ -618,18 +651,42 @@ export class EventosService {
     }
 
     this.mediaService.removeByPublicUrl(evento.imagemUrl);
-    if (evento.bannerUrl !== evento.imagemUrl) {
-      this.mediaService.removeByPublicUrl(evento.bannerUrl);
-    }
 
-    return this.prisma.evento.update({
+    const updated = await this.prisma.evento.update({
       where: { id: eventoId },
       data: {
         imagemUrl: null,
+      },
+      select: eventoAdminSelect,
+    });
+
+    return this.sanitizeEventoMedia(updated);
+  }
+
+  async removeBanner(eventoId: string, usuarioId: string) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
+
+    const evento = await this.prisma.evento.findFirst({
+      where: { id: eventoId, empresaId },
+      select: { bannerUrl: true },
+    });
+
+    if (!evento) {
+      throw new NotFoundException('Evento não encontrado');
+    }
+
+    this.mediaService.removeByPublicUrl(evento.bannerUrl);
+
+    const updated = await this.prisma.evento.update({
+      where: { id: eventoId },
+      data: {
         bannerUrl: null,
       },
       select: eventoAdminSelect,
     });
+
+    return this.sanitizeEventoMedia(updated);
   }
 
   private mapEventoDisponivel(

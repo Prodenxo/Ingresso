@@ -39,7 +39,7 @@ import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto'
 import { UpdateEventoDto } from './dto/update-evento.dto'
 
 import { EventosService } from './eventos.service'
-import { getFlyerMaxBytes } from './eventos-media.config'
+import { getFlyerMulterOptions } from './eventos-media.config'
 
 @Controller('eventos')
 
@@ -165,11 +165,7 @@ export class EventosController {
 
   @UseInterceptors(
 
-    FileInterceptor('flyer', {
-
-      limits: { fileSize: getFlyerMaxBytes() },
-
-    }),
+    FileInterceptor('flyer', getFlyerMulterOptions()),
 
   )
 
@@ -202,6 +198,50 @@ export class EventosController {
   ) {
 
     return this.eventosService.removeFlyer(id, user.id)
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard)
+
+  @Post(':id/banner')
+
+  @UseInterceptors(
+
+    FileInterceptor('banner', getFlyerMulterOptions()),
+
+  )
+
+  uploadBanner(
+
+    @Param('id') id: string,
+
+    @CurrentUser() user: AuthenticatedUser,
+
+    @UploadedFile() file: Express.Multer.File,
+
+  ) {
+
+    return this.eventosService.uploadBanner(id, user.id, file)
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard)
+
+  @Delete(':id/banner')
+
+  removeBanner(
+
+    @Param('id') id: string,
+
+    @CurrentUser() user: AuthenticatedUser,
+
+  ) {
+
+    return this.eventosService.removeBanner(id, user.id)
 
   }
 

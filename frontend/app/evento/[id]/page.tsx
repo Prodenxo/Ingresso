@@ -250,6 +250,7 @@ function EventoPublicoContent() {
         <EventoVitrineCard
           evento={evento}
           linkIndicacao={linkIndicacao}
+          showBannerHero
           onComprar={(lote) => void abrirCheckout(lote)}
         />
 

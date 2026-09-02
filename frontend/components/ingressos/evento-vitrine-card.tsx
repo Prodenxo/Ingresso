@@ -3,6 +3,7 @@
 import { Button, Card } from '@heroui/react'
 import { CalendarDays, MapPin } from 'lucide-react'
 import { EventoPoster } from '@/components/ingressos/evento-poster'
+import { EventoBannerHero } from '@/components/ingressos/evento-banner-hero'
 import { LotePrecoPromo } from '@/components/ingressos/lote-preco-promo'
 import {
   formatEventDate,
@@ -13,7 +14,6 @@ import {
 import { calcPrecoComDescontoIndicacao } from '@/lib/link-indicacao-storage'
 import { formatDescontoPercentual } from '@/lib/preco-promocional'
 import { formatCurrency } from '@/lib/utils'
-import { resolveMediaUrl } from '@/lib/media-url'
 import type { LinkIndicacaoPublico } from '@/types/links-indicacao'
 import type { EventoDisponivel, LoteDisponivel } from '@/types/ingressos'
 
@@ -21,6 +21,7 @@ interface EventoVitrineCardProps {
   evento: EventoDisponivel
   linkIndicacao?: LinkIndicacaoPublico | null
   onComprar: (lote: LoteDisponivel) => void
+  showBannerHero?: boolean
 }
 
 function shouldHideLoteNome(loteNome: string, eventoNome: string): boolean {
@@ -37,32 +38,26 @@ export function EventoVitrineCard({
   evento,
   linkIndicacao = null,
   onComprar,
+  showBannerHero = false,
 }: EventoVitrineCardProps) {
   const location = formatLocation(evento)
   const dateBadge = formatEventDateBadge(evento.dataInicio)
   const totalLotes = evento.lotes.length
-  const capaUrl = resolveMediaUrl(evento.bannerUrl ?? evento.imagemUrl)
+  const temPoster = Boolean(evento.imagemUrl)
+  const temBanner = Boolean(evento.bannerUrl)
 
   return (
     <Card className="glass-panel overflow-hidden rounded-2xl border-white/10 p-0">
-      {capaUrl ? (
-        <div className="relative h-40 w-full overflow-hidden border-b border-white/8 sm:h-48">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={capaUrl}
-            alt=""
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-[#0a0a12]/60 to-transparent" />
-        </div>
+      {showBannerHero && temBanner ? (
+        <EventoBannerHero bannerUrl={evento.bannerUrl} nome={evento.nome} />
       ) : null}
 
       <div className="space-y-4 p-4 sm:p-5">
         <div className="flex gap-4">
-          {!capaUrl ? (
+          {temPoster || !temBanner ? (
             <EventoPoster
               imagemUrl={evento.imagemUrl}
-              bannerUrl={evento.bannerUrl}
+              bannerUrl={temBanner ? null : evento.bannerUrl}
               nome={evento.nome}
               size="md"
             />

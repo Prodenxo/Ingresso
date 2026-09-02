@@ -3,26 +3,25 @@
 import { Button, Card } from '@heroui/react'
 import { ImageIcon, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { EventoPoster } from '@/components/ingressos/evento-poster'
 import { ApiError, apiUpload } from '@/lib/api-client'
 import { getFlyerMaxBytes, getFlyerMaxMbLabel } from '@/lib/flyer-upload-config'
 import { resolveMediaUrl } from '@/lib/media-url'
 
-interface EventoFlyerUploadProps {
+interface EventoBannerUploadProps {
   eventoId: string
   eventoNome: string
-  imagemUrl: string | null
-  onUpdated: (imagemUrl: string | null) => void
+  bannerUrl: string | null
+  onUpdated: (bannerUrl: string | null) => void
   onRefresh?: () => void | Promise<void>
 }
 
-export function EventoFlyerUpload({
+export function EventoBannerUpload({
   eventoId,
   eventoNome,
-  imagemUrl,
+  bannerUrl,
   onUpdated,
   onRefresh,
-}: EventoFlyerUploadProps) {
+}: EventoBannerUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,16 +29,14 @@ export function EventoFlyerUpload({
   const [isUploading, setIsUploading] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
 
-  const displayUrl = preview ?? resolveMediaUrl(imagemUrl)
+  const displayUrl = preview ?? resolveMediaUrl(bannerUrl)
 
   function handleSelectFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     setError(null)
     setSuccess(null)
 
-    if (!file) {
-      return
-    }
+    if (!file) return
 
     if (!file.type.startsWith('image/')) {
       setError('Selecione uma imagem (JPG, PNG, WebP ou GIF)')
@@ -51,8 +48,7 @@ export function EventoFlyerUpload({
       return
     }
 
-    const objectUrl = URL.createObjectURL(file)
-    setPreview(objectUrl)
+    setPreview(URL.createObjectURL(file))
     void uploadFile(file)
   }
 
@@ -62,30 +58,28 @@ export function EventoFlyerUpload({
     setSuccess(null)
 
     const formData = new FormData()
-    formData.append('flyer', file)
+    formData.append('banner', file)
 
     try {
-      const result = await apiUpload<{ imagemUrl: string | null }>(
-        `/eventos/${eventoId}/flyer`,
+      const result = await apiUpload<{ bannerUrl: string | null }>(
+        `/eventos/${eventoId}/banner`,
         formData,
       )
 
-      if (!result.imagemUrl) {
-        setError('A capa não ficou salva. Tente enviar novamente.')
+      if (!result.bannerUrl) {
+        setError('O banner não ficou salvo. Tente enviar novamente.')
         return
       }
 
-      onUpdated(result.imagemUrl)
+      onUpdated(result.bannerUrl)
       setPreview(null)
-      setSuccess('Capa salva com sucesso.')
+      setSuccess('Banner salvo com sucesso.')
       await onRefresh?.()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erro ao enviar imagem')
+      setError(err instanceof ApiError ? err.message : 'Erro ao enviar banner')
     } finally {
       setIsUploading(false)
-      if (inputRef.current) {
-        inputRef.current.value = ''
-      }
+      if (inputRef.current) inputRef.current.value = ''
     }
   }
 
@@ -95,17 +89,17 @@ export function EventoFlyerUpload({
     setSuccess(null)
 
     try {
-      const result = await apiUpload<{ imagemUrl: string | null }>(
-        `/eventos/${eventoId}/flyer`,
+      const result = await apiUpload<{ bannerUrl: string | null }>(
+        `/eventos/${eventoId}/banner`,
         null,
         'DELETE',
       )
-      onUpdated(result.imagemUrl)
+      onUpdated(result.bannerUrl)
       setPreview(null)
-      setSuccess('Capa removida.')
+      setSuccess('Banner removido.')
       await onRefresh?.()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erro ao remover imagem')
+      setError(err instanceof ApiError ? err.message : 'Erro ao remover banner')
     } finally {
       setIsRemoving(false)
     }
@@ -114,56 +108,28 @@ export function EventoFlyerUpload({
   return (
     <Card className="glass-panel rounded-2xl border-white/10 p-5">
       <Card.Header>
-        <Card.Title className="text-white">Capa retrato</Card.Title>
+        <Card.Title className="text-white">Banner paisagem</Card.Title>
         <Card.Description>
-          Imagem vertical para listagens e vitrine (proporção 3:4, ex.: 600×800).
-          JPG/PNG/WebP/GIF, máx. {getFlyerMaxMbLabel()}.
+          Imagem horizontal para a página pública do evento (recomendado 1600×838).
+          Clique para ampliar sem cortar. JPG/PNG/WebP/GIF, máx. {getFlyerMaxMbLabel()}.
         </Card.Description>
       </Card.Header>
       <Card.Content className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-[auto_1fr]">
-          {displayUrl ? (
-            <EventoPoster
-              imagemUrl={displayUrl}
-              nome={eventoNome}
-              size="md"
-              className="!h-[140px] !w-[105px]"
+        {displayUrl ? (
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#050508]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={displayUrl}
+              alt={`Banner ${eventoNome}`}
+              className="mx-auto max-h-48 w-full object-contain sm:max-h-56"
             />
-          ) : (
-            <div className="flex h-[140px] w-[105px] flex-col items-center justify-center rounded-lg border border-dashed border-white/25 bg-white/5 text-zinc-500">
-              <ImageIcon className="mb-2 size-6" aria-hidden />
-              <p className="px-2 text-center text-xs">Sem capa</p>
-            </div>
-          )}
-
-          <div className="rounded-xl border border-white/8 bg-white/3 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Prévia na vitrine
-            </p>
-            <div className="mt-3 flex gap-3">
-              {displayUrl ? (
-                <EventoPoster
-                  imagemUrl={displayUrl}
-                  nome={eventoNome}
-                  size="sm"
-                />
-              ) : (
-                <div className="flex h-[88px] w-[66px] items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/3">
-                  <ImageIcon className="size-4 text-zinc-600" aria-hidden />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">
-                  {eventoNome}
-                </p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Arte pequena à esquerda, detalhes à direita, como na listagem
-                  de ingressos.
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex h-40 flex-col items-center justify-center rounded-xl border border-dashed border-white/25 bg-white/5 text-zinc-500">
+            <ImageIcon className="mb-2 size-6" aria-hidden />
+            <p className="px-4 text-center text-sm">Nenhum banner paisagem</p>
+          </div>
+        )}
 
         <input
           ref={inputRef}
@@ -184,10 +150,10 @@ export function EventoFlyerUpload({
             {isUploading
               ? 'Enviando...'
               : displayUrl
-                ? 'Trocar capa'
-                : 'Importar capa'}
+                ? 'Trocar banner'
+                : 'Importar banner'}
           </Button>
-          {imagemUrl ? (
+          {bannerUrl ? (
             <Button
               variant="danger"
               size="sm"

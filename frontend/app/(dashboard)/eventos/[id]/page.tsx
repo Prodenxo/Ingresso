@@ -4,6 +4,7 @@ import { Button, Card, Chip } from '@heroui/react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { EventoFlyerUpload } from '@/components/eventos/evento-flyer-upload'
+import { EventoBannerUpload } from '@/components/eventos/evento-banner-upload'
 import { EventoLotesManager } from '@/components/eventos/evento-lotes-manager'
 import { EventoLinksIndicacaoPanel } from '@/components/eventos/evento-links-indicacao-panel'
 import { EventoCompartilharPanel } from '@/components/eventos/evento-compartilhar-panel'
@@ -201,14 +202,26 @@ export default function EventoDetalhePage() {
         />
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <EventoFlyerUpload
           eventoId={evento.id}
           eventoNome={evento.nome}
           imagemUrl={evento.imagemUrl}
+          onRefresh={loadEvento}
           onUpdated={(imagemUrl) =>
             setEvento((current) =>
-              current ? { ...current, imagemUrl, bannerUrl: imagemUrl } : current,
+              current ? { ...current, imagemUrl } : current,
+            )
+          }
+        />
+        <EventoBannerUpload
+          eventoId={evento.id}
+          eventoNome={evento.nome}
+          bannerUrl={evento.bannerUrl}
+          onRefresh={loadEvento}
+          onUpdated={(bannerUrl) =>
+            setEvento((current) =>
+              current ? { ...current, bannerUrl } : current,
             )
           }
         />

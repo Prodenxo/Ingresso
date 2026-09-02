@@ -1,3 +1,5 @@
+import { memoryStorage } from 'multer'
+
 const DEFAULT_FLYER_MAX_MB = 15
 
 export function getFlyerMaxBytes(): number {
@@ -12,4 +14,11 @@ export function getFlyerMaxBytes(): number {
 
 export function getFlyerMaxMbLabel(): string {
   return `${Math.round(getFlyerMaxBytes() / (1024 * 1024))} MB`
+}
+
+export function getFlyerMulterOptions() {
+  return {
+    storage: memoryStorage(),
+    limits: { fileSize: getFlyerMaxBytes() },
+  }
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common'
-import { createWriteStream, existsSync, mkdirSync, unlinkSync } from 'fs'
+import { createReadStream, createWriteStream, existsSync, mkdirSync, unlinkSync } from 'fs'
 import { extname, join } from 'path'
 import { randomUUID } from 'crypto'
 import { pipeline } from 'stream/promises'
@@ -32,18 +32,6 @@ export class EventosMediaService implements OnModuleInit {
 
   resolvePublicUrl(publicUrl: string | null | undefined): string | null {
     if (!publicUrl?.startsWith('/api/uploads/eventos/')) {
-      return null
-    }
-
-    const filename = publicUrl.split('/').pop()
-
-    if (!filename) {
-      return null
-    }
-
-    const filePath = join(UPLOADS_DIR, filename)
-
-    if (!existsSync(filePath)) {
       return null
     }
 
@@ -81,7 +69,21 @@ export class EventosMediaService implements OnModuleInit {
     const filename = `${randomUUID()}${safeExt}`
     const destination = join(UPLOADS_DIR, filename)
 
-    await pipeline(Readable.from(file.buffer), createWriteStream(destination))
+    if (file.buffer?.length) {
+      await pipeline(Readable.from(file.buffer), createWriteStream(destination))
+    } else if (file.path) {
+      await pipeline(createReadStream(file.path), createWriteStream(destination))
+    } else {
+      throw new BadRequestException('Arquivo de imagem inválido')
+    }
+
+    if (file.path) {
+      try {
+        unlinkSync(file.path)
+      } catch {
+        // arquivo temporário já removido
+      }
+    }
 
     if (previousUrl) {
       this.removeByPublicUrl(previousUrl)
