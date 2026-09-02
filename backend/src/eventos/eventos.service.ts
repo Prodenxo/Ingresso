@@ -21,7 +21,7 @@ import { CreateLoteDto } from './dto/create-lote.dto';
 import { UpdateLoteDto } from './dto/update-lote.dto';
 import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
-import { EventosMediaService } from './eventos-media.service';
+import { MembrosService } from '../membros/membros.service';
 
 const eventoAdminSelect = {
   id: true,
@@ -60,6 +60,7 @@ const eventoDisponivelSelect = {
   nome: true,
   slug: true,
   descricao: true,
+  status: true,
   dataInicio: true,
   dataFim: true,
   cidade: true,
@@ -72,6 +73,7 @@ const eventoDisponivelSelect = {
     select: {
       id: true,
       nome: true,
+      slugMembro: true,
     },
   },
   lotes: {
@@ -100,6 +102,7 @@ export class EventosService {
     private readonly prisma: PrismaService,
     private readonly empresaAccess: EmpresaAccessService,
     private readonly mediaService: EventosMediaService,
+    private readonly membrosService: MembrosService,
   ) {}
 
   async findDisponiveis(usuarioId: string) {
@@ -146,6 +149,44 @@ export class EventosService {
         ),
       )
       .filter((evento) => evento.lotes.length > 0);
+  }
+
+  async findPublico(eventoId: string) {
+    const now = new Date();
+
+    const evento = await this.prisma.evento.findUnique({
+      where: { id: eventoId },
+      select: eventoDisponivelSelect,
+    });
+
+    if (!evento || evento.status !== StatusEvento.PUBLICADO) {
+      throw new NotFoundException('Evento não encontrado ou indisponível');
+    }
+
+    const gatewayConfig = await this.prisma.empresaGatewayPagamento.findUnique({
+      where: { empresaId: evento.empresa.id },
+    });
+
+    return this.mapEventoDisponivel(evento, now, gatewayConfig);
+  }
+
+  async vincularParticipantePublico(eventoId: string, usuarioId: string) {
+    const evento = await this.prisma.evento.findUnique({
+      where: { id: eventoId },
+      select: {
+        status: true,
+        empresaId: true,
+      },
+    });
+
+    if (!evento || evento.status !== StatusEvento.PUBLICADO) {
+      throw new NotFoundException('Evento não encontrado ou indisponível');
+    }
+
+    return this.membrosService.vincularPorEmpresaId(
+      usuarioId,
+      evento.empresaId,
+    );
   }
 
   async findAllAdmin(usuarioId: string) {

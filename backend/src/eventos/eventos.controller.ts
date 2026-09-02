@@ -55,6 +55,20 @@ export class EventosController {
     return this.eventosService.findDisponiveis(user.id)
   }
 
+  @Get('publico/:id')
+  findPublico(@Param('id') id: string) {
+    return this.eventosService.findPublico(id)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('publico/:id/vincular')
+  vincularParticipantePublico(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.eventosService.vincularParticipantePublico(id, user.id)
+  }
+
 
 
   @UseGuards(JwtAuthGuard)

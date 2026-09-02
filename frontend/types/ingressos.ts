@@ -26,6 +26,7 @@ export interface EventoDisponivel {
   empresa: {
     id: string
     nome: string
+    slugMembro?: string | null
   }
   formasPagamento: FormaPagamentoDisponivel[]
   lotes: LoteDisponivel[]

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { EventoFlyerUpload } from '@/components/eventos/evento-flyer-upload'
 import { EventoLotesManager } from '@/components/eventos/evento-lotes-manager'
 import { EventoLinksIndicacaoPanel } from '@/components/eventos/evento-links-indicacao-panel'
+import { EventoCompartilharPanel } from '@/components/eventos/evento-compartilhar-panel'
 import { EventoVitrineEditor } from '@/components/eventos/evento-vitrine-editor'
 import { EventoCheckinConfig } from '@/components/eventos/evento-checkin-config'
 import { CheckInRelatorioPanel } from '@/components/check-in/check-in-relatorio-panel'
@@ -186,6 +187,12 @@ export default function EventoDetalhePage() {
           {error}
         </p>
       ) : null}
+
+      <EventoCompartilharPanel
+        eventoId={evento.id}
+        eventoNome={evento.nome}
+        publicado={evento.status === 'PUBLICADO'}
+      />
 
       <div className="mb-6">
         <EventoVitrineEditor
