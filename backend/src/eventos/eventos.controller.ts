@@ -213,6 +213,24 @@ export class EventosController {
 
   @UseGuards(JwtAuthGuard)
 
+  @Post(':id/despublicar')
+
+  despublicar(
+
+    @Param('id') id: string,
+
+    @CurrentUser() user: AuthenticatedUser,
+
+  ) {
+
+    return this.eventosService.despublicar(id, user.id)
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard)
+
   @Delete(':id')
 
   remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {

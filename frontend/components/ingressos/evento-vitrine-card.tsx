@@ -79,7 +79,7 @@ export function EventoVitrineCard({
         </div>
 
         {evento.descricao ? (
-          <p className="text-sm leading-relaxed text-zinc-300 sm:text-base">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-300 sm:text-base">
             {evento.descricao}
           </p>
         ) : (

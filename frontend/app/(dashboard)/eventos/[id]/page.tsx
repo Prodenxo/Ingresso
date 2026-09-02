@@ -34,6 +34,7 @@ export default function EventoDetalhePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isUnpublishing, setIsUnpublishing] = useState(false)
 
   const loadEvento = useCallback(async () => {
     setIsLoading(true)
@@ -66,6 +67,32 @@ export default function EventoDetalhePage() {
       setError(err instanceof ApiError ? err.message : 'Erro ao publicar')
     } finally {
       setIsPublishing(false)
+    }
+  }
+
+  async function handleDespublicar() {
+    if (!evento) return
+
+    if (
+      !window.confirm(
+        'Tirar este evento do ar? Ele deixa de aparecer na vitrine de ingressos e os links de indicação param de funcionar. Quem já comprou mantém o ingresso.',
+      )
+    ) {
+      return
+    }
+
+    setIsUnpublishing(true)
+    setError(null)
+
+    try {
+      await apiFetch(`/eventos/${evento.id}/despublicar`, { method: 'POST' })
+      await loadEvento()
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Erro ao tirar evento do ar',
+      )
+    } finally {
+      setIsUnpublishing(false)
     }
   }
 
@@ -132,6 +159,16 @@ export default function EventoDetalhePage() {
             onPress={() => void handlePublicar()}
           >
             {isPublishing ? 'Publicando...' : 'Publicar evento'}
+          </Button>
+        ) : null}
+        {evento.status === 'PUBLICADO' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            isDisabled={isUnpublishing}
+            onPress={() => void handleDespublicar()}
+          >
+            {isUnpublishing ? 'Tirando do ar...' : 'Tirar do ar'}
           </Button>
         ) : null}
         <Button variant="ghost" size="sm" onPress={() => router.push('/eventos')}>

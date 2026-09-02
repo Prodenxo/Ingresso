@@ -224,7 +224,7 @@ model Evento {
   categoriaId String?            @map("categoria_id")
   nome        String
   slug        String
-  descricao   String?
+  descricao   String?            @db.Text
   bannerUrl   String?            @map("banner_url")
   imagemUrl   String?            @map("imagem_url")
   dataInicio  DateTime           @map("data_inicio")

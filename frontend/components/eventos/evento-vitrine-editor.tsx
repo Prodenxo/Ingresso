@@ -1,81 +1,94 @@
-'use client'
+"use client";
 
-import { Button, Card } from '@heroui/react'
-import { Eye, Loader2, Save } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { EventoPoster } from '@/components/ingressos/evento-poster'
-import { FormField } from '@/components/ui/form-field'
-import { ApiError, apiFetch } from '@/lib/api-client'
-import { formatEventDateBadge, formatLocation } from '@/lib/ingressos-utils'
-import type { EventoDetalhe } from '@/types/eventos'
+import { Button, Card } from "@heroui/react";
+import { Eye, Loader2, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { EventoPoster } from "@/components/ingressos/evento-poster";
+import { FormField } from "@/components/ui/form-field";
+import { ApiError, apiFetch } from "@/lib/api-client";
+import { formatEventDateBadge, formatLocation } from "@/lib/ingressos-utils";
+import {
+  contarPalavras,
+  EVENTO_DESCRICAO_MAX_PALAVRAS,
+  validarDescricaoVitrine,
+} from "@/lib/evento-vitrine";
+import type { EventoDetalhe } from "@/types/eventos";
 
 interface EventoVitrineEditorProps {
-  evento: EventoDetalhe
-  onUpdated: (evento: EventoDetalhe) => void
+  evento: EventoDetalhe;
+  onUpdated: (evento: EventoDetalhe) => void;
 }
 
 export function EventoVitrineEditor({
   evento,
   onUpdated,
 }: EventoVitrineEditorProps) {
-  const [nome, setNome] = useState(evento.nome)
-  const [descricao, setDescricao] = useState(evento.descricao ?? '')
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [nome, setNome] = useState(evento.nome);
+  const [descricao, setDescricao] = useState(evento.descricao ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    setNome(evento.nome)
-    setDescricao(evento.descricao ?? '')
-  }, [evento.id, evento.nome, evento.descricao])
+    setNome(evento.nome);
+    setDescricao(evento.descricao ?? "");
+  }, [evento.id, evento.nome, evento.descricao]);
 
   const hasChanges =
     nome.trim() !== evento.nome.trim() ||
-    descricao.trim() !== (evento.descricao ?? '').trim()
+    descricao.trim() !== (evento.descricao ?? "").trim();
 
   const previewLocation = formatLocation({
     cidade: evento.cidade,
     estado: evento.estado,
-  })
-  const dateBadge = formatEventDateBadge(evento.dataInicio)
+  });
+  const dateBadge = formatEventDateBadge(evento.dataInicio);
 
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    setSuccess(null)
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
 
-    const nomeTrim = nome.trim()
-    const descricaoTrim = descricao.trim()
+    const nomeTrim = nome.trim();
+    const descricaoTrim = descricao.trim();
+    const erroDescricao = validarDescricaoVitrine(descricaoTrim);
 
     if (nomeTrim.length < 3) {
-      setError('O título deve ter pelo menos 3 caracteres')
-      return
+      setError("O título deve ter pelo menos 3 caracteres");
+      return;
     }
 
-    if (descricaoTrim.length > 0 && descricaoTrim.length < 20) {
-      setError('A descrição de venda deve ter pelo menos 20 caracteres ou ficar vazia')
-      return
+    if (erroDescricao) {
+      setError(erroDescricao);
+      return;
     }
 
-    setIsSaving(true)
+    setIsSaving(true);
 
     try {
-      const atualizado = await apiFetch<EventoDetalhe>(`/eventos/${evento.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          nome: nomeTrim,
-          descricao: descricaoTrim || '',
-        }),
-      })
+      const atualizado = await apiFetch<EventoDetalhe>(
+        `/eventos/${evento.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            nome: nomeTrim,
+            descricao: descricaoTrim || "",
+          }),
+        },
+      );
 
-      onUpdated({ ...evento, ...atualizado, lotes: evento.lotes })
-      setSuccess('Vitrine atualizada. Participantes já veem o novo texto.')
+      onUpdated({ ...evento, ...atualizado, lotes: evento.lotes });
+      setSuccess("Vitrine atualizada. Participantes já veem o novo texto.");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erro ao salvar vitrine')
+      setError(
+        err instanceof ApiError ? err.message : "Erro ao salvar vitrine",
+      );
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
   }
+
+  const palavrasDescricao = contarPalavras(descricao);
 
   return (
     <Card className="glass-panel rounded-2xl border-white/10 p-5 md:p-6">
@@ -83,7 +96,8 @@ export function EventoVitrineEditor({
         <div>
           <h2 className="text-lg font-medium text-white">Vitrine de vendas</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Título e descrição que o participante vê antes de comprar o ingresso.
+            Título e descrição que o participante vê antes de comprar o
+            ingresso.
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-200">
@@ -104,8 +118,8 @@ export function EventoVitrineEditor({
             maxLength={120}
           />
           <p className="text-xs text-zinc-500">
-            Use um título claro, com benefício ou formato. Evite códigos internos
-            (&quot;asdasd&quot;, &quot;teste&quot;).
+            Use um título claro, com benefício ou formato. Evite códigos
+            internos (&quot;asdasd&quot;, &quot;teste&quot;).
           </p>
 
           <div className="space-y-2">
@@ -120,13 +134,19 @@ export function EventoVitrineEditor({
               name="evento-descricao-vitrine"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              rows={5}
-              maxLength={600}
+              rows={10}
               placeholder="Conte o que a pessoa vai viver, quem deve ir e por que comprar agora. Ex.: Um dia imersivo com mentores, networking e certificado."
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
             />
-            <p className="text-xs text-zinc-500">
-              {descricao.trim().length}/600 · Recomendado: 2 a 4 frases objetivas
+            <p
+              className={`text-xs ${
+                palavrasDescricao > EVENTO_DESCRICAO_MAX_PALAVRAS
+                  ? "text-red-400"
+                  : "text-zinc-500"
+              }`}
+            >
+              {palavrasDescricao}/{EVENTO_DESCRICAO_MAX_PALAVRAS} palavras · Até{" "}
+              {EVENTO_DESCRICAO_MAX_PALAVRAS} palavras
             </p>
           </div>
 
@@ -173,7 +193,7 @@ export function EventoVitrineEditor({
                 <EventoPoster
                   imagemUrl={evento.imagemUrl}
                   bannerUrl={evento.bannerUrl}
-                  nome={nome.trim() || 'Seu evento'}
+                  nome={nome.trim() || "Seu evento"}
                   size="sm"
                 />
               </div>
@@ -182,7 +202,7 @@ export function EventoVitrineEditor({
                   Sua empresa
                 </p>
                 <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold text-white">
-                  {nome.trim() || 'Título do evento'}
+                  {nome.trim() || "Título do evento"}
                 </h3>
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-zinc-400">
                   <span className="rounded border border-white/10 px-1.5 py-0.5 uppercase text-indigo-300">
@@ -191,7 +211,7 @@ export function EventoVitrineEditor({
                   {previewLocation ? <span>{previewLocation}</span> : null}
                 </div>
                 {descricao.trim() ? (
-                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-zinc-300">
+                  <p className="mt-2 line-clamp-6 whitespace-pre-line text-xs leading-relaxed text-zinc-300">
                     {descricao.trim()}
                   </p>
                 ) : (
@@ -208,5 +228,5 @@ export function EventoVitrineEditor({
         </div>
       </div>
     </Card>
-  )
+  );
 }

@@ -35,6 +35,18 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
     if (
       exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === 'P2000'
+    ) {
+      const body = new ServiceUnavailableException(
+        'Texto muito longo para a coluna no banco. Aplique a migration evento_descricao_text (descricao → TEXT).',
+      ).getResponse()
+
+      response.status(HttpStatus.BAD_REQUEST).json(body)
+      return
+    }
+
+    if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
       exception.code === 'P2002'
     ) {
       const body = new ConflictException('Registro já existe no banco').getResponse()

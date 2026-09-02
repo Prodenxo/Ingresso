@@ -2,7 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common'
+} from '@nestjs/common';
 import {
   ModoCheckinEvento,
   Prisma,
@@ -10,17 +10,18 @@ import {
   StatusLote,
   VisibilidadeEvento,
   type EmpresaGatewayPagamento,
-} from '@prisma/client'
-import { EmpresaAccessService } from '../common/services/empresa-access.service'
-import { buildUniqueSlug } from '../common/utils/slug'
-import { resolverFormasPagamento } from '../payments/gateway-resolver'
-import { PrismaService } from '../prisma/prisma.service'
-import { CreateEventoDto } from './dto/create-evento.dto'
-import { CreateLoteDto } from './dto/create-lote.dto'
-import { UpdateLoteDto } from './dto/update-lote.dto'
-import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto'
-import { UpdateEventoDto } from './dto/update-evento.dto'
-import { EventosMediaService } from './eventos-media.service'
+} from '@prisma/client';
+import { EmpresaAccessService } from '../common/services/empresa-access.service';
+import { buildUniqueSlug } from '../common/utils/slug';
+import { validarDescricaoVitrine } from './evento-vitrine.constants';
+import { resolverFormasPagamento } from '../payments/gateway-resolver';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateEventoDto } from './dto/create-evento.dto';
+import { CreateLoteDto } from './dto/create-lote.dto';
+import { UpdateLoteDto } from './dto/update-lote.dto';
+import { ConfigCheckinEventoDto } from './dto/config-checkin-evento.dto';
+import { UpdateEventoDto } from './dto/update-evento.dto';
+import { EventosMediaService } from './eventos-media.service';
 
 const eventoAdminSelect = {
   id: true,
@@ -52,7 +53,7 @@ const eventoAdminSelect = {
       pedidos: true,
     },
   },
-} satisfies Prisma.EventoSelect
+} satisfies Prisma.EventoSelect;
 
 const eventoDisponivelSelect = {
   id: true,
@@ -87,11 +88,11 @@ const eventoDisponivelSelect = {
       status: true,
     },
   },
-} satisfies Prisma.EventoSelect
+} satisfies Prisma.EventoSelect;
 
 type EventoDisponivelRow = Prisma.EventoGetPayload<{
-  select: typeof eventoDisponivelSelect
-}>
+  select: typeof eventoDisponivelSelect;
+}>;
 
 @Injectable()
 export class EventosService {
@@ -103,13 +104,13 @@ export class EventosService {
 
   async findDisponiveis(usuarioId: string) {
     const empresaIds =
-      await this.empresaAccess.getEmpresasVinculadasIds(usuarioId)
+      await this.empresaAccess.getEmpresasVinculadasIds(usuarioId);
 
     if (empresaIds.length === 0) {
-      return []
+      return [];
     }
 
-    const now = new Date()
+    const now = new Date();
 
     const eventos = await this.prisma.evento.findMany({
       where: {
@@ -126,15 +127,15 @@ export class EventosService {
       },
       select: eventoDisponivelSelect,
       orderBy: { dataInicio: 'asc' },
-    })
+    });
 
     const gateways = await this.prisma.empresaGatewayPagamento.findMany({
       where: { empresaId: { in: empresaIds } },
-    })
+    });
 
     const gatewayPorEmpresa = new Map(
       gateways.map((gateway) => [gateway.empresaId, gateway]),
-    )
+    );
 
     return eventos
       .map((evento) =>
@@ -144,23 +145,23 @@ export class EventosService {
           gatewayPorEmpresa.get(evento.empresa.id) ?? null,
         ),
       )
-      .filter((evento) => evento.lotes.length > 0)
+      .filter((evento) => evento.lotes.length > 0);
   }
 
   async findAllAdmin(usuarioId: string) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
 
     const eventos = await this.prisma.evento.findMany({
       where: { empresaId },
       select: eventoAdminSelect,
       orderBy: { dataInicio: 'desc' },
-    })
+    });
 
-    return eventos.map((evento) => this.sanitizeEventoMedia(evento))
+    return eventos.map((evento) => this.sanitizeEventoMedia(evento));
   }
 
   async findOneAdmin(eventoId: string, usuarioId: string) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
 
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
@@ -172,13 +173,13 @@ export class EventosService {
           orderBy: { ordem: 'asc' },
         },
       },
-    })
+    });
 
     if (!evento) {
-      throw new NotFoundException('Evento não encontrado')
+      throw new NotFoundException('Evento não encontrado');
     }
 
-    return this.sanitizeEventoMedia(this.mapEventoAdminDetalhe(evento))
+    return this.sanitizeEventoMedia(this.mapEventoAdminDetalhe(evento));
   }
 
   async configurarCheckin(
@@ -186,19 +187,21 @@ export class EventosService {
     usuarioId: string,
     dto: ConfigCheckinEventoDto,
   ) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
-    const pontos = [...dto.pontos].sort((a, b) => a.ordem - b.ordem)
+    const pontos = [...dto.pontos].sort((a, b) => a.ordem - b.ordem);
 
     if (dto.batePonto) {
       if (pontos.length === 0) {
-        throw new BadRequestException('Adicione pelo menos um ponto de check-in')
+        throw new BadRequestException(
+          'Adicione pelo menos um ponto de check-in',
+        );
       }
 
-      const ordens = new Set(pontos.map((p) => p.ordem))
+      const ordens = new Set(pontos.map((p) => p.ordem));
       if (ordens.size !== pontos.length) {
-        throw new BadRequestException('Ordens dos pontos devem ser únicas')
+        throw new BadRequestException('Ordens dos pontos devem ser únicas');
       }
     }
 
@@ -211,9 +214,9 @@ export class EventosService {
             : ModoCheckinEvento.PORTA_UNICA,
           checkinDias: dto.batePonto ? dto.dias : 1,
         },
-      })
+      });
 
-      await tx.eventoPontoCheckin.deleteMany({ where: { eventoId } })
+      await tx.eventoPontoCheckin.deleteMany({ where: { eventoId } });
 
       if (dto.batePonto) {
         await tx.eventoPontoCheckin.createMany({
@@ -223,28 +226,28 @@ export class EventosService {
             ordem: ponto.ordem,
             nome: ponto.nome.trim(),
           })),
-        })
+        });
       }
-    })
+    });
 
-    return this.findOneAdmin(eventoId, usuarioId)
+    return this.findOneAdmin(eventoId, usuarioId);
   }
 
   async create(usuarioId: string, dto: CreateEventoDto) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
     const slug = await buildUniqueSlug(dto.nome, async (candidate) => {
       const exists = await this.prisma.evento.findFirst({
         where: { empresaId, slug: candidate },
-      })
-      return Boolean(exists)
-    })
+      });
+      return Boolean(exists);
+    });
 
     return this.prisma.evento.create({
       data: {
         empresaId,
         nome: dto.nome.trim(),
         slug,
-        descricao: dto.descricao?.trim(),
+        descricao: validarDescricaoVitrine(dto.descricao?.trim()),
         dataInicio: new Date(dto.dataInicio),
         dataFim: dto.dataFim ? new Date(dto.dataFim) : null,
         cidade: dto.cidade?.trim(),
@@ -256,106 +259,131 @@ export class EventosService {
         visibilidade: VisibilidadeEvento.PUBLICO,
       },
       select: eventoAdminSelect,
-    })
+    });
   }
 
   async update(eventoId: string, usuarioId: string, dto: UpdateEventoDto) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
-    const data: Prisma.EventoUpdateInput = {}
+    const data: Prisma.EventoUpdateInput = {};
 
     if (dto.nome !== undefined) {
-      data.nome = dto.nome.trim()
+      data.nome = dto.nome.trim();
       data.slug = await buildUniqueSlug(dto.nome, async (candidate) => {
         const exists = await this.prisma.evento.findFirst({
           where: { empresaId, slug: candidate, NOT: { id: eventoId } },
-        })
-        return Boolean(exists)
-      })
+        });
+        return Boolean(exists);
+      });
     }
 
-    if (dto.descricao !== undefined) data.descricao = dto.descricao.trim()
-    if (dto.dataInicio !== undefined) data.dataInicio = new Date(dto.dataInicio)
-    if (dto.dataFim !== undefined) {
-      data.dataFim = dto.dataFim ? new Date(dto.dataFim) : null
+    if (dto.descricao !== undefined) {
+      data.descricao = validarDescricaoVitrine(dto.descricao.trim());
     }
-    if (dto.cidade !== undefined) data.cidade = dto.cidade.trim()
-    if (dto.estado !== undefined) data.estado = dto.estado.trim()
-    if (dto.endereco !== undefined) data.endereco = dto.endereco.trim()
-    if (dto.formato !== undefined) data.formato = dto.formato
-    if (dto.capacidade !== undefined) data.capacidade = dto.capacidade
+    if (dto.dataInicio !== undefined)
+      data.dataInicio = new Date(dto.dataInicio);
+    if (dto.dataFim !== undefined) {
+      data.dataFim = dto.dataFim ? new Date(dto.dataFim) : null;
+    }
+    if (dto.cidade !== undefined) data.cidade = dto.cidade.trim();
+    if (dto.estado !== undefined) data.estado = dto.estado.trim();
+    if (dto.endereco !== undefined) data.endereco = dto.endereco.trim();
+    if (dto.formato !== undefined) data.formato = dto.formato;
+    if (dto.capacidade !== undefined) data.capacidade = dto.capacidade;
 
     return this.prisma.evento.update({
       where: { id: eventoId },
       data,
       select: eventoAdminSelect,
-    })
+    });
   }
 
   async publicar(eventoId: string, usuarioId: string) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
     const lotesCount = await this.prisma.lote.count({
       where: { eventoId, empresaId },
-    })
+    });
 
     if (lotesCount === 0) {
       throw new BadRequestException(
         'Adicione pelo menos um lote antes de publicar o evento',
-      )
+      );
     }
 
     return this.prisma.evento.update({
       where: { id: eventoId },
       data: { status: StatusEvento.PUBLICADO },
       select: eventoAdminSelect,
-    })
+    });
+  }
+
+  async despublicar(eventoId: string, usuarioId: string) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
+
+    const evento = await this.prisma.evento.findFirst({
+      where: { id: eventoId, empresaId },
+      select: { status: true },
+    });
+
+    if (!evento) {
+      throw new NotFoundException('Evento não encontrado');
+    }
+
+    if (evento.status !== StatusEvento.PUBLICADO) {
+      throw new BadRequestException(
+        'Só é possível tirar do ar eventos publicados',
+      );
+    }
+
+    return this.prisma.evento.update({
+      where: { id: eventoId },
+      data: { status: StatusEvento.RASCUNHO },
+      select: eventoAdminSelect,
+    });
   }
 
   async remove(eventoId: string, usuarioId: string) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
       select: { imagemUrl: true, bannerUrl: true },
-    })
+    });
 
     if (evento) {
-      this.mediaService.removeByPublicUrl(evento.imagemUrl)
+      this.mediaService.removeByPublicUrl(evento.imagemUrl);
       if (evento.bannerUrl !== evento.imagemUrl) {
-        this.mediaService.removeByPublicUrl(evento.bannerUrl)
+        this.mediaService.removeByPublicUrl(evento.bannerUrl);
       }
     }
 
-    await this.prisma.evento.delete({ where: { id: eventoId } })
+    await this.prisma.evento.delete({ where: { id: eventoId } });
 
-    return { deleted: true }
+    return { deleted: true };
   }
 
-  async createLote(
-    eventoId: string,
-    usuarioId: string,
-    dto: CreateLoteDto,
-  ) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+  async createLote(eventoId: string, usuarioId: string, dto: CreateLoteDto) {
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
-    const vendaInicio = new Date(dto.vendaInicio)
-    const vendaFim = new Date(dto.vendaFim)
+    const vendaInicio = new Date(dto.vendaInicio);
+    const vendaFim = new Date(dto.vendaFim);
 
     if (vendaFim <= vendaInicio) {
       throw new BadRequestException(
         'A data final de venda deve ser posterior à inicial',
-      )
+      );
     }
 
     if (dto.precoDe !== undefined && dto.precoDe <= dto.preco) {
       throw new BadRequestException(
         'O preço âncora deve ser maior que o valor unitário de venda',
-      )
+      );
     }
 
     return this.prisma.lote.create({
@@ -371,7 +399,7 @@ export class EventosService {
         limitePorCompra: dto.limitePorCompra ?? 1,
         status: StatusLote.ATIVO,
       },
-    })
+    });
   }
 
   async updateLote(
@@ -380,29 +408,29 @@ export class EventosService {
     usuarioId: string,
     dto: UpdateLoteDto,
   ) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
     const lote = await this.prisma.lote.findFirst({
       where: { id: loteId, eventoId, empresaId },
-    })
+    });
 
     if (!lote) {
-      throw new NotFoundException('Lote não encontrado')
+      throw new NotFoundException('Lote não encontrado');
     }
 
     const vendaInicio = dto.vendaInicio
       ? new Date(dto.vendaInicio)
-      : lote.vendaInicio
-    const vendaFim = dto.vendaFim ? new Date(dto.vendaFim) : lote.vendaFim
+      : lote.vendaInicio;
+    const vendaFim = dto.vendaFim ? new Date(dto.vendaFim) : lote.vendaFim;
 
     if (vendaFim <= vendaInicio) {
       throw new BadRequestException(
         'A data final de venda deve ser posterior à inicial',
-      )
+      );
     }
 
-    const nextPreco = dto.preco ?? Number(lote.preco)
+    const nextPreco = dto.preco ?? Number(lote.preco);
     const nextPrecoDe =
       dto.precoDe === null
         ? null
@@ -410,12 +438,12 @@ export class EventosService {
           ? dto.precoDe
           : lote.precoDe
             ? Number(lote.precoDe)
-            : null
+            : null;
 
     if (nextPrecoDe !== null && nextPrecoDe <= nextPreco) {
       throw new BadRequestException(
         'O preço âncora deve ser maior que o valor unitário de venda',
-      )
+      );
     }
 
     if (
@@ -427,7 +455,7 @@ export class EventosService {
       if (dto.preco !== undefined && dto.preco !== Number(lote.preco)) {
         throw new BadRequestException(
           'Não é possível alterar o preço de lote com vendas registradas',
-        )
+        );
       }
 
       if (
@@ -438,7 +466,7 @@ export class EventosService {
       ) {
         throw new BadRequestException(
           'Não é possível alterar o preço âncora de lote com vendas registradas',
-        )
+        );
       }
     }
 
@@ -446,18 +474,15 @@ export class EventosService {
       if (dto.quantidade < lote.quantidadeVendida) {
         throw new BadRequestException(
           `A quantidade não pode ser menor que ${lote.quantidadeVendida} (já vendidos)`,
-        )
+        );
       }
     }
 
-    const nextStatus = dto.status ?? lote.status
-    if (
-      nextStatus === StatusLote.ESGOTADO &&
-      dto.status !== undefined
-    ) {
+    const nextStatus = dto.status ?? lote.status;
+    if (nextStatus === StatusLote.ESGOTADO && dto.status !== undefined) {
       throw new BadRequestException(
         'O status esgotado é definido automaticamente pelo sistema',
-      )
+      );
     }
 
     const updated = await this.prisma.lote.update({
@@ -474,7 +499,7 @@ export class EventosService {
           : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
       },
-    })
+    });
 
     return {
       ...updated,
@@ -482,30 +507,30 @@ export class EventosService {
       precoDe: updated.precoDe ? Number(updated.precoDe) : null,
       taxa: Number(updated.taxa),
       disponiveis: updated.quantidade - updated.quantidadeVendida,
-    }
+    };
   }
 
   async removeLote(eventoId: string, loteId: string, usuarioId: string) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
     const lote = await this.prisma.lote.findFirst({
       where: { id: loteId, eventoId, empresaId },
-    })
+    });
 
     if (!lote) {
-      throw new NotFoundException('Lote não encontrado')
+      throw new NotFoundException('Lote não encontrado');
     }
 
     if (lote.quantidadeVendida > 0) {
       throw new BadRequestException(
         'Não é possível excluir lote com vendas registradas',
-      )
+      );
     }
 
-    await this.prisma.lote.delete({ where: { id: loteId } })
+    await this.prisma.lote.delete({ where: { id: loteId } });
 
-    return { deleted: true }
+    return { deleted: true };
   }
 
   async uploadFlyer(
@@ -513,19 +538,19 @@ export class EventosService {
     usuarioId: string,
     file: Express.Multer.File,
   ) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
       select: { imagemUrl: true },
-    })
+    });
 
     if (!evento) {
-      throw new NotFoundException('Evento não encontrado')
+      throw new NotFoundException('Evento não encontrado');
     }
 
-    const imagemUrl = await this.mediaService.saveFlyer(file, evento.imagemUrl)
+    const imagemUrl = await this.mediaService.saveFlyer(file, evento.imagemUrl);
 
     return this.prisma.evento.update({
       where: { id: eventoId },
@@ -534,25 +559,25 @@ export class EventosService {
         bannerUrl: imagemUrl,
       },
       select: eventoAdminSelect,
-    })
+    });
   }
 
   async removeFlyer(eventoId: string, usuarioId: string) {
-    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId)
-    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId)
+    const empresaId = await this.empresaAccess.resolveEmpresaId(usuarioId);
+    await this.empresaAccess.assertEventoOwnership(eventoId, empresaId);
 
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
       select: { imagemUrl: true, bannerUrl: true },
-    })
+    });
 
     if (!evento) {
-      throw new NotFoundException('Evento não encontrado')
+      throw new NotFoundException('Evento não encontrado');
     }
 
-    this.mediaService.removeByPublicUrl(evento.imagemUrl)
+    this.mediaService.removeByPublicUrl(evento.imagemUrl);
     if (evento.bannerUrl !== evento.imagemUrl) {
-      this.mediaService.removeByPublicUrl(evento.bannerUrl)
+      this.mediaService.removeByPublicUrl(evento.bannerUrl);
     }
 
     return this.prisma.evento.update({
@@ -562,7 +587,7 @@ export class EventosService {
         bannerUrl: null,
       },
       select: eventoAdminSelect,
-    })
+    });
   }
 
   private mapEventoDisponivel(
@@ -586,7 +611,7 @@ export class EventosService {
         disponiveis: lote.quantidade - lote.quantidadeVendida,
         vendaFim: lote.vendaFim,
         limitePorCompra: lote.limitePorCompra,
-      }))
+      }));
 
     return {
       id: evento.id,
@@ -604,7 +629,7 @@ export class EventosService {
       empresa: evento.empresa,
       formasPagamento: resolverFormasPagamento(gatewayConfig),
       lotes,
-    }
+    };
   }
 
   private sanitizeEventoMedia<
@@ -614,7 +639,7 @@ export class EventosService {
       ...evento,
       imagemUrl: this.mediaService.resolvePublicUrl(evento.imagemUrl),
       bannerUrl: this.mediaService.resolvePublicUrl(evento.bannerUrl),
-    }
+    };
   }
 
   private mapEventoAdminDetalhe(
@@ -629,6 +654,6 @@ export class EventosService {
         taxa: Number(lote.taxa),
         disponiveis: lote.quantidade - lote.quantidadeVendida,
       })),
-    }
+    };
   }
 }
