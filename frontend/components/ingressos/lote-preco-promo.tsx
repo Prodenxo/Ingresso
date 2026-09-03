@@ -16,6 +16,23 @@ export function LotePrecoPromo({
   const hasPromo = precoDe != null && precoDe > preco
   const textSize = size === 'sm' ? 'text-sm' : 'text-base'
 
+  if (preco <= 0) {
+    const freeContent = (
+      <span className="font-semibold text-emerald-300">Grátis</span>
+    )
+
+    if (showLabel) {
+      return (
+        <p className={`leading-snug ${textSize}`}>
+          <span className="text-zinc-400">Valor unitário: </span>
+          {freeContent}
+        </p>
+      )
+    }
+
+    return <p className={`leading-snug ${textSize}`}>{freeContent}</p>
+  }
+
   const priceContent = hasPromo ? (
     <>
       <span className="text-zinc-500">De </span>

@@ -126,6 +126,7 @@ export function EventoVitrineCard({
                   linkIndicacao.descontoPercentual,
                 )
               : lote.preco
+            const isGratuito = precoComDesconto <= 0
 
             return (
               <div
@@ -164,6 +165,8 @@ export function EventoVitrineCard({
                           % off via link de indicação
                         </p>
                       </div>
+                    ) : isGratuito ? (
+                      <p className="text-sm font-semibold text-emerald-300">Grátis</p>
                     ) : (
                       <LotePrecoPromo
                         preco={lote.preco}
@@ -184,7 +187,7 @@ export function EventoVitrineCard({
                   isDisabled={lote.disponiveis < 1}
                   onPress={() => onComprar(lote)}
                 >
-                  Comprar ingresso
+                  {isGratuito ? 'Confirmar ingresso grátis' : 'Comprar ingresso'}
                 </Button>
               </div>
             )

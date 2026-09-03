@@ -141,6 +141,24 @@ export class PedidosService {
       )
     const subtotal = precoUnitario * dto.quantidade
 
+    this.validarParticipantesCheckout(dto.quantidade, dto.participantesAdicionais)
+    const participantesIngresso = this.montarParticipantesIngresso(
+      usuario,
+      dto.quantidade,
+      dto.participantesAdicionais,
+    )
+
+    if (subtotal <= 0) {
+      return this.checkoutGratuito({
+        lote,
+        usuario,
+        dto,
+        linkIndicacaoId,
+        precoUnitario,
+        participantesIngresso,
+      })
+    }
+
     const gatewayConfig = await this.prisma.empresaGatewayPagamento.findUnique({
       where: { empresaId: lote.empresaId },
     })
@@ -155,11 +173,6 @@ export class PedidosService {
         )
       }
 
-      this.validarParticipantesCheckout(
-        dto.quantidade,
-        dto.participantesAdicionais,
-      )
-
       return this.checkoutComInfinityPay({
         lote,
         usuario,
@@ -168,11 +181,7 @@ export class PedidosService {
         precoUnitario,
         subtotal,
         linkIndicacaoId,
-        participantesIngresso: this.montarParticipantesIngresso(
-          usuario,
-          dto.quantidade,
-          dto.participantesAdicionais,
-        ),
+        participantesIngresso,
       })
     }
 
@@ -189,13 +198,6 @@ export class PedidosService {
         )
       }
     }
-
-    this.validarParticipantesCheckout(dto.quantidade, dto.participantesAdicionais)
-    const participantesIngresso = this.montarParticipantesIngresso(
-      usuario,
-      dto.quantidade,
-      dto.participantesAdicionais,
-    )
 
     const codigo = gerarCodigoPedido()
     const expiraEm =
@@ -293,6 +295,84 @@ export class PedidosService {
       loteEmpresaId: lote.empresaId,
       expiraEm,
     })
+  }
+
+  private async checkoutGratuito(input: {
+    lote: {
+      id: string
+      empresaId: string
+      eventoId: string
+    }
+    usuario: { nome: string; email: string; telefone: string | null }
+    dto: CheckoutDto
+    linkIndicacaoId: string | null
+    precoUnitario: number
+    participantesIngresso: ParticipanteIngressoRegistro[]
+  }) {
+    const { lote, usuario, dto, linkIndicacaoId, precoUnitario, participantesIngresso } =
+      input
+
+    await this.validarLimiteIngressoGratuito(
+      lote.id,
+      usuario,
+      dto,
+      participantesIngresso,
+    )
+
+    const codigo = gerarCodigoPedido()
+
+    const pedido = await this.prisma.pedido.create({
+      data: {
+        empresaId: lote.empresaId,
+        eventoId: lote.eventoId,
+        linkIndicacaoId,
+        codigo,
+        status: StatusPedido.PENDENTE,
+        total: 0,
+        compradorNome: usuario.nome,
+        compradorEmail: usuario.email,
+        compradorCpf: null,
+        compradorTelefone: usuario.telefone,
+        participantesIngresso: participantesIngresso as unknown as Prisma.InputJsonValue,
+        expiraEm: null,
+        itens: {
+          create: {
+            empresaId: lote.empresaId,
+            loteId: lote.id,
+            quantidade: dto.quantidade,
+            precoUnitario,
+            subtotal: 0,
+          },
+        },
+        pagamentos: {
+          create: {
+            empresaId: lote.empresaId,
+            metodo: MetodoPagamento.PIX,
+            status: StatusPagamento.PENDENTE,
+            valor: 0,
+            gateway: 'gratuito',
+            gatewayRef: `gratuito-${codigo}`,
+          },
+        },
+      },
+    })
+
+    const resultado = await this.finalizarPedidoPago(
+      pedido.id,
+      usuario.nome,
+      usuario.email,
+    )
+
+    return {
+      pedidoId: resultado.pedidoId,
+      codigo,
+      total: 0,
+      status: resultado.status,
+      gateway: 'gratuito' as const,
+      metodo: 'GRATUITO' as const,
+      expiraEm: null,
+      ingressos: resultado.ingressos,
+    }
   }
 
   private async finalizarCheckoutPix(input: {
@@ -1278,6 +1358,90 @@ export class PedidosService {
       pedidoId: pedido.id,
       status: StatusPedido.PAGO,
       ingressos: ingressosGerados,
+    }
+  }
+
+  private async validarLimiteIngressoGratuito(
+    loteId: string,
+    usuario: { email: string },
+    dto: CheckoutDto,
+    participantesIngresso: ParticipanteIngressoRegistro[],
+  ) {
+    if (dto.quantidade !== 1) {
+      throw new BadRequestException(
+        'Ingresso gratuito: limite de 1 por pessoa. Não é possível solicitar mais de um.',
+      )
+    }
+
+    const emailNormalizado = usuario.email.trim().toLowerCase()
+    const cpfs = [
+      ...new Set(
+        participantesIngresso
+          .map((participante) =>
+            participante.cpf ? normalizeCpf(participante.cpf) : null,
+          )
+          .filter((cpf): cpf is string => Boolean(cpf)),
+      ),
+    ]
+
+    const statusAtivos: StatusIngresso[] = [
+      StatusIngresso.VALIDO,
+      StatusIngresso.UTILIZADO,
+    ]
+
+    const ingressosDoLote = await this.prisma.ingresso.findMany({
+      where: {
+        loteId,
+        status: { in: statusAtivos },
+      },
+      select: {
+        participanteEmail: true,
+        participanteCpf: true,
+      },
+    })
+
+    const emailJaUsado = ingressosDoLote.some(
+      (ingresso) =>
+        ingresso.participanteEmail.trim().toLowerCase() === emailNormalizado,
+    )
+
+    if (emailJaUsado) {
+      throw new BadRequestException(
+        'Você já possui um ingresso gratuito deste lote. Limite de 1 por e-mail.',
+      )
+    }
+
+    if (cpfs.length > 0) {
+      const cpfJaUsado = ingressosDoLote.some(
+        (ingresso) =>
+          ingresso.participanteCpf &&
+          cpfs.includes(normalizeCpf(ingresso.participanteCpf)),
+      )
+
+      if (cpfJaUsado) {
+        throw new BadRequestException(
+          'Este CPF já possui um ingresso gratuito deste lote. Limite de 1 por pessoa.',
+        )
+      }
+    }
+
+    const pedidoPendente = await this.prisma.pedido.findFirst({
+      where: {
+        status: StatusPedido.PENDENTE,
+        itens: { some: { loteId } },
+        pagamentos: { some: { gateway: 'gratuito' } },
+        OR: [
+          { compradorEmail: usuario.email },
+          { compradorEmail: emailNormalizado },
+        ],
+      },
+      select: { id: true },
+    })
+
+    if (pedidoPendente) {
+      throw new BadRequestException(
+        'Já existe uma confirmação em andamento para este ingresso gratuito.',
+      )
     }
   }
 

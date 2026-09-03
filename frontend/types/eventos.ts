@@ -62,7 +62,8 @@ export interface CheckoutResponse {
     | 'inter-boleto'
     | 'infinitypay'
     | 'mock-infinitypay'
-  metodo?: 'PIX' | 'BOLETO' | 'CHECKOUT'
+    | 'gratuito'
+  metodo?: 'PIX' | 'BOLETO' | 'CHECKOUT' | 'GRATUITO'
   pixCopiaCola?: string
   checkoutUrl?: string | null
   linhaDigitavel?: string
@@ -70,6 +71,11 @@ export interface CheckoutResponse {
   dataVencimento?: string
   boletoPdfUrl?: string | null
   expiraEm: string | null
+  ingressos?: Array<{
+    id: string
+    codigo: string
+    participanteNome: string
+  }>
 }
 
 export interface PedidoStatusResponse {

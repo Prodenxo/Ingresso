@@ -72,8 +72,15 @@ export function CheckoutPixModal({
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pdfAutoOpenedRef = useRef(false)
 
-  const maxQtd = Math.min(limitePorCompra, disponiveis)
+  const isGratuito = preco <= 0
+  const maxQtd = isGratuito ? 1 : Math.min(limitePorCompra, disponiveis)
   const total = preco * quantidade
+
+  useEffect(() => {
+    if (isGratuito && quantidade !== 1) {
+      setQuantidade(1)
+    }
+  }, [isGratuito, quantidade])
   const isPagamentoReal =
     checkout?.gateway === 'inter-pix' ||
     checkout?.gateway === 'inter-boleto' ||
@@ -213,6 +220,14 @@ export function CheckoutPixModal({
           body: JSON.stringify(payload),
         },
       )
+
+      if (result.gateway === 'gratuito' && result.ingressos?.length) {
+        setIngressos(result.ingressos)
+        setStep('done')
+        onSuccess()
+        return
+      }
+
       setCheckout(result)
       setStep('pagamento')
 
@@ -300,7 +315,13 @@ export function CheckoutPixModal({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 id="checkout-title" className="text-lg font-medium text-white">
-              {step === 'done' ? 'Compra confirmada' : 'Comprar ingresso'}
+              {step === 'done'
+                ? isGratuito
+                  ? 'Ingresso confirmado'
+                  : 'Compra confirmada'
+                : isGratuito
+                  ? 'Confirmar ingresso grátis'
+                  : 'Comprar ingresso'}
             </h2>
             <p className="text-sm text-zinc-400">{loteNome}</p>
           </div>
@@ -330,24 +351,30 @@ export function CheckoutPixModal({
 
         {step === 'quantidade' ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="quantidade">Quantidade</Label>
-              <Input
-                id="quantidade"
-                type="number"
-                min={1}
-                max={maxQtd}
-                value={String(quantidade)}
-                onChange={(e) =>
-                  setQuantidade(
-                    Math.min(maxQtd, Math.max(1, Number(e.target.value) || 1)),
-                  )
-                }
-              />
-              <p className="text-xs text-zinc-500">
-                Máximo {maxQtd} por compra · {formatCurrency(preco)} cada
+            {!isGratuito ? (
+              <div className="space-y-2">
+                <Label htmlFor="quantidade">Quantidade</Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  min={1}
+                  max={maxQtd}
+                  value={String(quantidade)}
+                  onChange={(e) =>
+                    setQuantidade(
+                      Math.min(maxQtd, Math.max(1, Number(e.target.value) || 1)),
+                    )
+                  }
+                />
+                <p className="text-xs text-zinc-500">
+                  Máximo {maxQtd} por compra · {formatCurrency(preco)} cada
+                </p>
+              </div>
+            ) : (
+              <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                Limite de <strong>1 ingresso grátis</strong> por e-mail neste lote.
               </p>
-            </div>
+            )}
 
             <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wide text-indigo-300/80">
@@ -422,7 +449,11 @@ export function CheckoutPixModal({
 
             <div className="space-y-2">
               <Label>Forma de pagamento</Label>
-              {usaCheckoutOnline ? (
+              {isGratuito ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                  Ingresso gratuito — sem pagamento. Clique abaixo para confirmar.
+                </div>
+              ) : usaCheckoutOnline ? (
                 <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
                   Pix ou cartão de crédito (até 12x) via InfinitePay
                 </div>
@@ -458,7 +489,7 @@ export function CheckoutPixModal({
               )}
             </div>
 
-            {metodoPagamento === 'BOLETO' ? (
+            {metodoPagamento === 'BOLETO' && !isGratuito ? (
               <div className="space-y-2">
                 <Label htmlFor="compradorCpf">Seu CPF (titular do boleto)</Label>
                 <Input
@@ -479,7 +510,9 @@ export function CheckoutPixModal({
 
             <p className="text-sm text-zinc-300">
               Total:{' '}
-              {precoOriginal && precoOriginal > preco ? (
+              {isGratuito ? (
+                <span className="font-semibold text-emerald-300">Grátis</span>
+              ) : precoOriginal && precoOriginal > preco ? (
                 <>
                   <span className="text-zinc-500 line-through">
                     {formatCurrency(precoOriginal * quantidade)}
@@ -509,11 +542,13 @@ export function CheckoutPixModal({
             >
               {isLoading
                 ? 'Processando...'
-                : usaCheckoutOnline
-                  ? 'Ir para pagamento'
-                  : metodoPagamento === 'BOLETO'
-                    ? 'Continuar para boleto'
-                    : 'Continuar para PIX'}
+                : isGratuito
+                  ? 'Confirmar ingresso grátis'
+                  : usaCheckoutOnline
+                    ? 'Ir para pagamento'
+                    : metodoPagamento === 'BOLETO'
+                      ? 'Continuar para boleto'
+                      : 'Continuar para PIX'}
             </Button>
           </div>
         ) : null}

@@ -215,6 +215,9 @@ function LoteFormFields({
         isDisabled={priceLocked}
         required
       />
+      <p className="text-xs text-zinc-500">
+        Use <strong className="text-zinc-400">0</strong> para ingresso gratuito (confirmação sem pagamento).
+      </p>
 
       <div className="form-row-2">
         <FormField
