@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common'
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { AuthModule } from './auth/auth.module'
 import { CheckInModule } from './check-in/check-in.module'
 import { ConfiguracoesModule } from './configuracoes/configuracoes.module'
+import { EmpresaContextMiddleware } from './common/middleware/empresa-context.middleware'
 import { DashboardModule } from './dashboard/dashboard.module'
 import { EmpresasModule } from './empresas/empresas.module'
 import { EventosModule } from './eventos/eventos.module'
@@ -33,5 +34,10 @@ import { WebhooksModule } from './webhooks/webhooks.module'
     CursosModule,
     WebhooksModule,
   ],
+  providers: [EmpresaContextMiddleware],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(EmpresaContextMiddleware).forRoutes('*')
+  }
+}

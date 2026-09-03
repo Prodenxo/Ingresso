@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import { TipoConta } from '@prisma/client'
+import { getEmpresaContextOverride } from '../context/empresa-context'
 import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
@@ -11,6 +12,13 @@ export class EmpresaAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
   async resolveEmpresaId(usuarioId: string): Promise<string> {
+    const override = getEmpresaContextOverride()
+
+    if (override) {
+      await this.assertEmpresaContextAccess(usuarioId, override)
+      return override
+    }
+
     const vinculo = await this.prisma.usuarioEmpresa.findFirst({
       where: { usuarioId },
       orderBy: { createdAt: 'asc' },
@@ -40,6 +48,31 @@ export class EmpresaAccessService {
     )
   }
 
+  private async assertEmpresaContextAccess(
+    usuarioId: string,
+    empresaId: string,
+  ): Promise<void> {
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { id: true },
+    })
+
+    if (!empresa) {
+      throw new NotFoundException('Empresa não encontrada')
+    }
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { tipoConta: true },
+    })
+
+    if (usuario?.tipoConta === TipoConta.SUPERADMIN) {
+      return
+    }
+
+    await this.assertVinculoEmpresa(usuarioId, empresaId)
+  }
+
   async assertEventoOwnership(eventoId: string, empresaId: string): Promise<void> {
     const evento = await this.prisma.evento.findFirst({
       where: { id: eventoId, empresaId },
@@ -52,29 +85,23 @@ export class EmpresaAccessService {
   }
 
   async assertPagamentoConfigAccess(usuarioId: string): Promise<string> {
+    const empresaId = await this.resolveEmpresaId(usuarioId)
+
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: { tipoConta: true },
     })
 
     if (usuario?.tipoConta === TipoConta.SUPERADMIN) {
-      const primeiraEmpresa = await this.prisma.empresa.findFirst({
-        orderBy: { createdAt: 'asc' },
-      })
-
-      if (primeiraEmpresa) {
-        return primeiraEmpresa.id
-      }
-
-      throw new ForbiddenException('Nenhuma empresa cadastrada no sistema')
+      return empresaId
     }
 
     const vinculoAdmin = await this.prisma.usuarioEmpresa.findFirst({
       where: {
         usuarioId,
+        empresaId,
         papel: { in: ['ADMINISTRADOR', 'FINANCEIRO'] },
       },
-      orderBy: { createdAt: 'asc' },
     })
 
     if (!vinculoAdmin) {
@@ -83,7 +110,7 @@ export class EmpresaAccessService {
       )
     }
 
-    return vinculoAdmin.empresaId
+    return empresaId
   }
 
   async getEmpresasVinculadasIds(usuarioId: string): Promise<string[]> {
@@ -184,6 +211,16 @@ export class EmpresaAccessService {
 
   async assertAdministradorEmpresa(usuarioId: string): Promise<string> {
     const empresaId = await this.resolveEmpresaId(usuarioId)
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { tipoConta: true },
+    })
+
+    if (usuario?.tipoConta === TipoConta.SUPERADMIN) {
+      return empresaId
+    }
+
     const vinculo = await this.prisma.usuarioEmpresa.findFirst({
       where: { usuarioId, empresaId },
       select: { papel: true },

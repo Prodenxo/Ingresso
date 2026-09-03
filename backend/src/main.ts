@@ -70,6 +70,7 @@ async function bootstrap() {
       callback(new Error(`Origem bloqueada pelo CORS: ${origin ?? 'desconhecida'}`))
     },
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Empresa-Id'],
   })
 
   console.log(

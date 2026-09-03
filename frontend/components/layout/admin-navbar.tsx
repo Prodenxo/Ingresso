@@ -3,6 +3,8 @@
 import { Avatar, Button, Chip } from '@heroui/react'
 import { Bell, LogOut, Search } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
+import { EmpresaSwitcher } from '@/components/empresa/empresa-switcher'
+import { useEmpresa } from '@/components/empresa/empresa-provider'
 import { getTipoContaLabel } from '@/lib/auth-roles'
 
 interface AdminNavbarProps {
@@ -20,21 +22,28 @@ function getInitials(name: string): string {
 
 export function AdminNavbar({ title, subtitle }: AdminNavbarProps) {
   const { user, logout } = useAuth()
-  const empresa = user?.empresas[0]
+  const { empresaAtiva, isSuperAdmin } = useEmpresa()
+  const empresaNome = isSuperAdmin
+    ? empresaAtiva?.nome
+    : user?.empresas[0]?.nome
 
   return (
-    <header className="glass-panel flex items-center justify-between gap-4 rounded-2xl px-5 py-4">
+    <header className="glass-panel flex flex-col gap-4 rounded-2xl px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <h2 className="text-lg font-semibold text-white">{title}</h2>
         {subtitle ? (
           <p className="text-sm text-zinc-400">{subtitle}</p>
         ) : null}
-        {empresa ? (
-          <p className="mt-1 text-xs text-zinc-500">{empresa.nome}</p>
+        {empresaNome ? (
+          <p className="mt-1 text-xs text-zinc-500">
+            {isSuperAdmin ? 'Operando como: ' : ''}
+            {empresaNome}
+          </p>
         ) : null}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <EmpresaSwitcher />
         {user ? (
           <Chip
             size="sm"

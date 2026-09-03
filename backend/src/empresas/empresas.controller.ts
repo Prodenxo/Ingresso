@@ -1,5 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { SuperAdminGuard } from '../auth/guards/superadmin.guard'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import type { AuthenticatedUser } from '../auth/types/jwt-payload.type'
 import { EmpresasService } from './empresas.service'
@@ -12,5 +13,11 @@ export class EmpresasController {
   @Get('me')
   findMine(@CurrentUser() user: AuthenticatedUser) {
     return this.empresasService.findMine(user.id)
+  }
+
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @Get()
+  findAll() {
+    return this.empresasService.findAllForSuperAdmin()
   }
 }

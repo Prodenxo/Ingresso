@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   CalendarDays,
   GraduationCap,
   LayoutDashboard,
@@ -20,6 +21,7 @@ export interface AdminNavItem {
   requiresMembros?: boolean
   requiresCheckin?: boolean
   requiresCursos?: boolean
+  requiresSuperAdmin?: boolean
   mobilePrimary?: boolean
 }
 
@@ -29,6 +31,12 @@ export const adminNavItems: AdminNavItem[] = [
     label: 'Início',
     icon: LayoutDashboard,
     mobilePrimary: true,
+  },
+  {
+    href: '/empresas',
+    label: 'Empresas',
+    icon: Building2,
+    requiresSuperAdmin: true,
   },
   {
     href: '/eventos',
@@ -79,6 +87,10 @@ export const adminNavItems: AdminNavItem[] = [
 
 export function getAdminNavItems(user: AuthUser | null): AdminNavItem[] {
   return adminNavItems.filter((item) => {
+    if (item.requiresSuperAdmin && user?.tipoConta !== 'SUPERADMIN') {
+      return false
+    }
+
     if (item.requiresMembros && !canGerenciarConviteMembros(user)) {
       return false
     }

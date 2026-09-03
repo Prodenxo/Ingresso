@@ -4,6 +4,7 @@ import {
   getRefreshToken,
   setTokens,
 } from '@/lib/auth-storage'
+import { getEmpresaAtivaId } from '@/lib/empresa-context-storage'
 import { getApiUrl, getNetworkErrorMessage } from '@/lib/public-env'
 import type { AuthSession, AuthUser } from '@/types/auth'
 
@@ -18,6 +19,14 @@ export class ApiError extends Error {
     super(message)
     this.name = 'ApiError'
     this.status = status
+  }
+}
+
+function applyEmpresaContextHeader(headers: Headers): void {
+  const empresaId = getEmpresaAtivaId()
+
+  if (empresaId) {
+    headers.set('X-Empresa-Id', empresaId)
   }
 }
 
@@ -75,6 +84,8 @@ export async function apiFetch<T>(
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
+  applyEmpresaContextHeader(headers)
+
   if (options.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
@@ -116,6 +127,8 @@ export async function apiFetchBlob(
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
+  applyEmpresaContextHeader(headers)
+
   const response = await fetch(`${getApiUrl()}${path}`, { headers }).catch(() => {
     throw new ApiError(getNetworkErrorMessage(), 0)
   })
@@ -147,6 +160,8 @@ export async function apiUpload<T>(
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
+
+  applyEmpresaContextHeader(headers)
 
   const response = await fetch(`${getApiUrl()}${path}`, {
     method,
