@@ -1,6 +1,8 @@
 import { getApiUrl } from '@/lib/public-env'
 
 const UPLOAD_PATH_PATTERN = /\/api\/uploads\/(?:eventos|cursos)\/[^/?#]+/i
+const ABSOLUTE_UPLOAD_PATTERN =
+  /^https?:\/\/[^/?#]+\/(?:api\/uploads\/(?:eventos|cursos)\/[^/?#]+|eventos\/[^/?#]+)/i
 
 function extractUploadPath(path: string): string | null {
   const match = path.match(UPLOAD_PATH_PATTERN)
@@ -27,10 +29,13 @@ export function resolveMediaUrl(path: string | null | undefined): string | null 
   }
 
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    const uploadPath = extractUploadPath(path)
+    if (ABSOLUTE_UPLOAD_PATTERN.test(path)) {
+      return path
+    }
 
+    const uploadPath = extractUploadPath(path)
     if (uploadPath) {
-      return uploadPath
+      return resolveMediaUrl(uploadPath)
     }
 
     return path
@@ -43,6 +48,10 @@ export function resolveMediaUrl(path: string | null | undefined): string | null 
     return normalizedPath
   }
 
-  const apiOrigin = apiUrl.replace(/\/api\/?$/, '')
-  return `${apiOrigin}${normalizedPath}`
+  if (normalizedPath.startsWith('/api/uploads/')) {
+    const apiOrigin = apiUrl.replace(/\/api\/?$/, '')
+    return `${apiOrigin}${normalizedPath}`
+  }
+
+  return normalizedPath
 }

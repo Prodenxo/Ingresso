@@ -12,6 +12,9 @@ async function bootstrap() {
 
   app.useStaticAssets(uploadsRoot, {
     prefix: '/api/uploads/',
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=86400')
+    },
   })
 
   app.setGlobalPrefix('api')

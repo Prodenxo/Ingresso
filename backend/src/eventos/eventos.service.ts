@@ -601,10 +601,12 @@ export class EventosService {
       data: {
         imagemUrl,
       },
-      select: eventoAdminSelect,
+      select: { imagemUrl: true },
     });
 
-    return this.sanitizeEventoMedia(updated);
+    return {
+      imagemUrl: this.mediaService.resolvePublicUrl(updated.imagemUrl),
+    };
   }
 
   async uploadBanner(
@@ -631,10 +633,12 @@ export class EventosService {
       data: {
         bannerUrl,
       },
-      select: eventoAdminSelect,
+      select: { bannerUrl: true },
     });
 
-    return this.sanitizeEventoMedia(updated);
+    return {
+      bannerUrl: this.mediaService.resolvePublicUrl(updated.bannerUrl),
+    };
   }
 
   async removeFlyer(eventoId: string, usuarioId: string) {
@@ -657,10 +661,12 @@ export class EventosService {
       data: {
         imagemUrl: null,
       },
-      select: eventoAdminSelect,
+      select: { imagemUrl: true },
     });
 
-    return this.sanitizeEventoMedia(updated);
+    return {
+      imagemUrl: this.mediaService.resolvePublicUrl(updated.imagemUrl),
+    };
   }
 
   async removeBanner(eventoId: string, usuarioId: string) {
@@ -683,10 +689,12 @@ export class EventosService {
       data: {
         bannerUrl: null,
       },
-      select: eventoAdminSelect,
+      select: { bannerUrl: true },
     });
 
-    return this.sanitizeEventoMedia(updated);
+    return {
+      bannerUrl: this.mediaService.resolvePublicUrl(updated.bannerUrl),
+    };
   }
 
   private mapEventoDisponivel(
